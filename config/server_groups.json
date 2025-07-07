@@ -1,0 +1,49 @@
+{
+    "server_groups": {
+        "app_servers": {
+            "name": "App Servers",
+            "description": "App Servers (3 servers) - Synced from CSV",
+            "priority": 3,
+            "max_concurrent": 3,
+            "scheduling_window": "19:00-23:00",
+            "patterns": [],
+            "host_groups": [
+                "app_servers"
+            ],
+            "server_count": 3,
+            "auto_generated": true
+        },
+        "web_servers": {
+            "name": "Web Servers",
+            "description": "Web Servers (3 servers) - Synced from CSV",
+            "priority": 2,
+            "max_concurrent": 4,
+            "scheduling_window": "20:00-01:00",
+            "patterns": [],
+            "host_groups": [
+                "web_servers"
+            ],
+            "server_count": 3,
+            "auto_generated": true
+        },
+        "db_servers": {
+            "name": "Db Servers",
+            "description": "Db Servers (3 servers) - Synced from CSV",
+            "priority": 1,
+            "max_concurrent": 2,
+            "scheduling_window": "21:00-02:00",
+            "patterns": [],
+            "host_groups": [
+                "db_servers"
+            ],
+            "server_count": 3,
+            "auto_generated": true
+        }
+    },
+    "load_balancing": {
+        "max_servers_per_hour": 5,
+        "min_gap_between_critical": 60,
+        "preferred_start_time": "20:00",
+        "max_duration_hours": 6
+    }
+}

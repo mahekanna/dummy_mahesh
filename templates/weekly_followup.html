@@ -1,0 +1,132 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <title>Weekly Followup - Action Required</title>
+    <style>
+        body {{
+            font-family: Arial, sans-serif;
+            line-height: 1.6;
+            color: #333;
+            max-width: 800px;
+            margin: 0 auto;
+            padding: 20px;
+        }}
+        h1, h2, h3 {{
+            color: #0056b3;
+        }}
+        .urgent {{
+            background-color: #fff3cd;
+            border-left: 4px solid #ffc107;
+            padding: 15px;
+            margin: 20px 0;
+        }}
+        .critical {{
+            background-color: #f8d7da;
+            border-left: 4px solid #dc3545;
+            padding: 15px;
+            margin: 20px 0;
+        }}
+        .highlight {{
+            background-color: #fff3cd;
+            padding: 2px 4px;
+            border-radius: 3px;
+        }}
+        .important {{
+            color: #dc3545;
+            font-weight: bold;
+        }}
+        table {{
+            border-collapse: collapse;
+            width: 100%;
+            margin: 20px 0;
+        }}
+        th, td {{
+            border: 1px solid #ddd;
+            padding: 8px;
+            text-align: left;
+        }}
+        th {{
+            background-color: #f2f2f2;
+            font-weight: bold;
+        }}
+        .footer {{
+            margin-top: 30px;
+            padding-top: 20px;
+            border-top: 1px solid #ddd;
+            font-size: 0.9em;
+            color: #666;
+        }}
+        .button {{
+            display: inline-block;
+            padding: 10px 20px;
+            background-color: #dc3545;
+            color: white;
+            text-decoration: none;
+            border-radius: 4px;
+            margin: 10px 5px;
+        }}
+        .button:hover {{
+            background-color: #c82333;
+        }}
+    </style>
+</head>
+<body>
+    <h2>🚨 FINAL NOTICE: Patching Schedule Approval Required - {quarter}</h2>
+    
+    <p>Dear {owner_email},</p>
+    
+    <div class="critical">
+        <h3>⚠️ URGENT: Final Response Required</h3>
+        <p>This is a <strong>FINAL FOLLOWUP</strong> regarding your patching schedule approval for <span class="highlight">{quarter}</span>.</p>
+        <p><span class="important">NO RESPONSE = AUTOMATIC APPROVAL WITH DEFAULT SETTINGS</span></p>
+    </div>
+    
+    <h3>Servers Pending Your Response:</h3>
+    {server_table}
+    
+    <div class="critical">
+        <h4>⏰ IMPORTANT DEADLINE INFORMATION:</h4>
+        <ul>
+            <li><span class="important">Response Deadline: {deadline_date} (48 hours from now)</span></li>
+            <li><strong>No Response Action:</strong> System will automatically approve with default date/time</li>
+            <li><strong>Default Assignment:</strong> Next available Thursday at {default_time}</li>
+            <li><strong>Cannot be changed after deadline</strong></li>
+        </ul>
+    </div>
+    
+    <h3>Your Options:</h3>
+    <ol>
+        <li><strong>Take Action Now:</strong> Login to the portal and approve/modify your schedule</li>
+        <li><strong>Do Nothing:</strong> System will auto-approve with default settings after deadline</li>
+    </ol>
+    
+    <div class="urgent">
+        <h4>What Happens if You Don't Respond:</h4>
+        <ul>
+            <li>✅ Your servers will be <strong>automatically approved</strong> for patching</li>
+            <li>📅 Default date will be assigned: <strong>Next available Thursday</strong></li>
+            <li>🕒 Default time will be assigned: <strong>{default_time} (server local time)</strong></li>
+            <li>🔒 No further changes will be possible (freeze period)</li>
+            <li>📧 You will receive confirmation of auto-approval</li>
+        </ul>
+    </div>
+    
+    <h3>Access the Portal:</h3>
+    <p><a href="http://localhost:5001" class="button">LOGIN NOW - Time Sensitive</a></p>
+    
+    <p><strong>This is your final opportunity to customize your patching schedule.</strong></p>
+    
+    <p>For urgent assistance or questions, please contact the Infrastructure Patching Team immediately.</p>
+    
+    <p>Best regards,<br>
+    Infrastructure Patching Team</p>
+    
+    <div class="footer">
+        <p><small>This is an automated final notice from the patching management system.</small></p>
+        <p><small>Quarter Definition: {quarter} covers the following months: {quarter_description}</small></p>
+        <p><small><span class="important">This followup was sent because you have not responded to the initial monthly notice.</span></small></p>
+        <p><small>Original notice sent: {original_notice_date}</small></p>
+        <p><small>Auto-approval will occur on: {deadline_date}</small></p>
+    </div>
+</body>
+</html>

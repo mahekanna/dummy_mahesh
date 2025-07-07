@@ -1,0 +1,111 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <title>Patching Schedule Approval Required</title>
+    <style>
+        body {{
+            font-family: Arial, sans-serif;
+            line-height: 1.6;
+            color: #333;
+            max-width: 800px;
+            margin: 0 auto;
+            padding: 20px;
+        }}
+        h1, h2, h3 {{
+            color: #0056b3;
+        }}
+        .urgent {{
+            background-color: #fff3cd;
+            border-left: 4px solid #ffc107;
+            padding: 15px;
+            margin: 20px 0;
+        }}
+        .highlight {{
+            background-color: #fff3cd;
+            padding: 2px 4px;
+            border-radius: 3px;
+        }}
+        .important {{
+            color: #dc3545;
+            font-weight: bold;
+        }}
+        table {{
+            border-collapse: collapse;
+            width: 100%;
+            margin: 20px 0;
+        }}
+        th, td {{
+            border: 1px solid #ddd;
+            padding: 8px;
+            text-align: left;
+        }}
+        th {{
+            background-color: #f2f2f2;
+            font-weight: bold;
+        }}
+        .footer {{
+            margin-top: 30px;
+            padding-top: 20px;
+            border-top: 1px solid #ddd;
+            font-size: 0.9em;
+            color: #666;
+        }}
+        .button {{
+            display: inline-block;
+            padding: 10px 20px;
+            background-color: #007bff;
+            color: white;
+            text-decoration: none;
+            border-radius: 4px;
+            margin: 10px 5px;
+        }}
+        .button:hover {{
+            background-color: #0056b3;
+        }}
+    </style>
+</head>
+<body>
+    <h2>URGENT: Patching Schedule Approval Required - {quarter}</h2>
+    
+    <p>Dear {owner_email},</p>
+    
+    <div class="urgent">
+        <h3>⚠️ ACTION REQUIRED BY TUESDAY EOD</h3>
+        <p>Your approval is required for the upcoming patching schedule for <span class="highlight">{quarter}</span>.</p>
+    </div>
+    
+    <h3>Servers Requiring Approval:</h3>
+    {server_table}
+    
+    <h3>What You Need to Do:</h3>
+    <ol>
+        <li><strong>Review</strong> the proposed patching schedule above</li>
+        <li><strong>Login</strong> to the patching portal to approve or modify the schedule</li>
+        <li><span class="important">Complete approval by Tuesday EOD</span></li>
+    </ol>
+    
+    <div class="urgent">
+        <h4>Important Notes:</h4>
+        <ul>
+            <li><span class="important">Deadline: Tuesday EOD</span></li>
+            <li>If not approved, patching will be moved to next week</li>
+            <li>You can modify the date/time if needed (next week onwards only)</li>
+            <li>All changes must be approved to proceed with patching</li>
+        </ul>
+    </div>
+    
+    <h3>Access the Portal:</h3>
+    <p><a href="http://localhost:5001" class="button">Login to Patching Portal</a></p>
+    
+    <p>If you have any questions or need assistance, please contact the Infrastructure Patching Team immediately.</p>
+    
+    <p>Best regards,<br>
+    Infrastructure Patching Team</p>
+    
+    <div class="footer">
+        <p><small>This is an automated message from the patching management system.</small></p>
+        <p><small>Quarter Definition: {quarter} covers the following months: {quarter_description}</small></p>
+        <p><small><span class="important">This approval request was sent because your servers have pending approvals that are due by Tuesday EOD.</span></small></p>
+    </div>
+</body>
+</html>

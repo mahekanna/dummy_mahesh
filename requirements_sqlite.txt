@@ -1,0 +1,12 @@
+# requirements.txt (SQLite version)
+# Use this if you don't want to install PostgreSQL dependencies
+pytz==2023.3
+flask==2.3.3
+flask-login==0.6.3
+flask-wtf==1.1.1
+wtforms==3.0.1
+bcrypt==4.0.1
+python-crontab==3.0.0
+schedule==1.2.0
+pysnmp==4.4.12
+prometheus-client==0.17.1

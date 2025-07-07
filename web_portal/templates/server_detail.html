@@ -1,0 +1,410 @@
+{% extends "base.html" %}
+
+{% block title %}{{ server['Server Name'] }} - Patching Portal{% endblock %}
+
+{% block extra_head %}
+<style>
+    .card {
+        margin-bottom: 20px;
+    }
+    .status-badge {
+        display: inline-block;
+        padding: 3px 8px;
+        border-radius: 4px;
+        font-size: 0.8em;
+        font-weight: bold;
+        text-align: center;
+    }
+    .status-pending {
+        background-color: #ffeeba;
+        color: #856404;
+    }
+    .status-scheduled {
+        background-color: #bee5eb;
+        color: #0c5460;
+    }
+    .status-completed {
+        background-color: #c3e6cb;
+        color: #155724;
+    }
+    .status-failed {
+        background-color: #f5c6cb;
+        color: #721c24;
+    }
+    .schedule-row {
+        margin-bottom: 15px;
+        padding-bottom: 15px;
+        border-bottom: 1px solid #eee;
+    }
+    .timezone-info {
+        font-size: 0.9em;
+        color: #6c757d;
+    }
+</style>
+{% endblock %}
+
+{% block content %}
+<div class="row">
+    <div class="col-md-12">
+        <h2>Server: {{ server['Server Name'] }}</h2>
+        <p>
+            Current Status: 
+            <span class="status-badge status-{{ server['Current Quarter Patching Status']|lower }}">
+                {{ server['Current Quarter Patching Status'] }}
+            </span>
+        </p>
+    </div>
+</div>
+
+<div class="row">
+    <div class="col-md-6">
+        <div class="card">
+            <div class="card-header">
+                <h3>Server Information</h3>
+            </div>
+            <div class="card-body">
+                <table class="table table-striped">
+                    <tr><td><strong>Server Name:</strong></td><td>{{ server['Server Name'] }}</td></tr>
+                    <tr><td><strong>Timezone:</strong></td><td id="timezone-display">{{ server['Server Timezone'] }}</td></tr>
+                    <tr><td><strong>Primary Owner:</strong></td><td>{{ server['primary_owner'] }}</td></tr>
+                    <tr><td><strong>Secondary Owner:</strong></td><td>{{ server['secondary_owner'] }}</td></tr>
+                    <tr><td><strong>Host Group:</strong></td><td>{{ server['host_group']|default('') }}</td></tr>
+                    <tr><td><strong>Location:</strong></td><td>{{ server['location']|default('') }}</td></tr>
+                    <tr><td><strong>Incident Ticket:</strong></td><td>{{ server['incident_ticket']|default('Not set') }}</td></tr>
+                    <tr><td><strong>Patcher Email:</strong></td><td>{{ server['patcher_email']|default('Not set') }}</td></tr>
+                    <tr><td><strong>{{ quarter_name }} Approval:</strong></td><td>
+                        {% set approval_status = server['Q'+ current_quarter|string +' Approval Status']|default('Pending') %}
+                        <span class="status-badge status-{{ approval_status|lower }}">{{ approval_status }}</span>
+                    </td></tr>
+                    <tr><td><strong>Status:</strong></td><td>{{ server['Current Quarter Patching Status'] }}</td></tr>
+                </table>
+            </div>
+        </div>
+    </div>
+    
+    {% if can_modify_incident_tickets or can_modify_patcher_emails %}
+    <div class="col-md-6">
+        <div class="card">
+            <div class="card-header">
+                <h3>Update Incident & Patcher Info {% if user_role == 'admin' %}<span class="badge badge-warning">Admin Only</span>{% endif %}</h3>
+            </div>
+            <div class="card-body">
+                <form method="POST" action="{{ url_for('update_emails') }}">
+                    <input type="hidden" name="server_name" value="{{ server['Server Name'] }}">
+                    
+                    {% if can_modify_incident_tickets %}
+                    <div class="form-group">
+                        <label for="incident_ticket">Incident Ticket Number:</label>
+                        <input type="text" id="incident_ticket" name="incident_ticket" class="form-control"
+                            value="{{ server['incident_ticket']|default('') }}" placeholder="INC2025070001">
+                        <small class="form-text text-muted">Incident ticket number for this server</small>
+                    </div>
+                    {% endif %}
+                    
+                    {% if can_modify_patcher_emails %}
+                    <div class="form-group">
+                        <label for="patcher_email">Patcher Email:</label>
+                        <input type="email" id="patcher_email" name="patcher_email" class="form-control"
+                            value="{{ server['patcher_email']|default('') }}" placeholder="patcher@company.com">
+                        <small class="form-text text-muted">Email for patcher assignments</small>
+                    </div>
+                    {% endif %}
+                    
+                    <button type="submit" class="btn btn-success">Update Info</button>
+                </form>
+            </div>
+        </div>
+    </div>
+    {% else %}
+    <div class="col-md-6">
+        <div class="card">
+            <div class="card-header">
+                <h3>Incident & Patcher Info <span class="badge badge-secondary">Read Only</span></h3>
+            </div>
+            <div class="card-body">
+                <div class="alert alert-info">
+                    <p><strong>Incident Ticket:</strong> {{ server['incident_ticket']|default('Not set') }}</p>
+                    <p><strong>Patcher Email:</strong> {{ server['patcher_email']|default('Not set') }}</p>
+                    <small class="text-muted">Only administrators can modify this information.</small>
+                </div>
+            </div>
+        </div>
+    </div>
+    {% endif %}
+</div>
+
+<div class="row">
+    <div class="col-md-6">
+        <div class="card">
+            <div class="card-header">
+                <h3>Update Schedule</h3>
+            </div>
+            <div class="card-body">
+                <form method="POST" action="{{ url_for('update_schedule') }}">
+                    <input type="hidden" name="server_name" value="{{ server['Server Name'] }}">
+                    
+                    <div class="form-group">
+                        <label for="quarter">Quarter:</label>
+                        <select id="quarter" name="quarter" class="form-control" required>
+                            {% for quarter_id, quarter_info in quarters.items() %}
+                                <option value="{{ quarter_id }}" {% if quarter_id == current_quarter %}selected{% endif %}>
+                                    {{ quarter_info.name }} ({% if quarter_id == '1' %}Nov-Jan{% elif quarter_id == '2' %}Feb-Apr{% elif quarter_id == '3' %}May-Jul{% else %}Aug-Oct{% endif %})
+                                </option>
+                            {% endfor %}
+                        </select>
+                    </div>
+                    
+                    <div id="ai-recommendations" class="alert alert-info" style="display: none;">
+                        <h6>🤖 AI Recommendations</h6>
+                        <div id="prediction-content">
+                            <p><strong>Recommended Date/Time:</strong> <span id="recommended-datetime">Loading...</span></p>
+                            <p><strong>Confidence:</strong> <span id="confidence-level">-</span></p>
+                            <p><strong>Reasoning:</strong> <span id="reasoning">-</span></p>
+                            <button type="button" class="btn btn-sm btn-success" id="use-prediction">Use This Recommendation</button>
+                        </div>
+                    </div>
+                    
+                    <div class="form-group">
+                        <label for="patch_date">Patch Date:</label>
+                        <input type="date" id="patch_date" name="patch_date" class="form-control" required
+                            value="{{ server['Q' + current_quarter|string + ' Patch Date']|default('') }}">
+                        <small class="form-text text-muted">Recommended day: Thursday | <a href="#" id="get-ai-recommendation">Get AI Recommendation</a></small>
+                    </div>
+                    
+                    <div class="form-group">
+                        <label for="patch_time">Patch Time (<span id="timezone-abbr">{{ server['Server Timezone'] }}</span>):</label>
+                        <input type="time" id="patch_time" name="patch_time" class="form-control" required
+                            value="{{ server['Q' + current_quarter|string + ' Patch Time']|default('20:00') }}">
+                        <small class="form-text text-muted">Recommended time: Evening hours (server local time)</small>
+                    </div>
+                    
+                    <div class="timezone-info" id="timezone-info"></div>
+                    <br>
+                    
+                    <button type="submit" class="btn btn-primary">Update Schedule</button>
+                </form>
+            </div>
+        </div>
+    </div>
+</div>
+
+<div class="row">
+    <div class="col-md-6">
+        <div class="card">
+            <div class="card-header">
+                <h3>{{ quarter_name }} Approval</h3>
+            </div>
+            <div class="card-body">
+                {% set approval_status = server['Q'+ current_quarter|string +' Approval Status']|default('Pending') %}
+                {% if approval_status == 'Pending' %}
+                <form method="POST" action="{{ url_for('approve_schedule') }}">
+                    <input type="hidden" name="server_name" value="{{ server['Server Name'] }}">
+                    <input type="hidden" name="quarter" value="{{ current_quarter }}">
+                    
+                    <div class="alert alert-info">
+                        <h5>Schedule Approval Required</h5>
+                        {% if server['Q' + current_quarter|string + ' Patch Date'] %}
+                            <p><strong>Proposed Schedule:</strong><br>
+                            Date: {{ server['Q' + current_quarter|string + ' Patch Date'] }}<br>
+                            Time: {{ server['Q' + current_quarter|string + ' Patch Time'] }} ({{ server['Server Timezone'] }})</p>
+                        {% else %}
+                            <p><strong>No schedule set yet.</strong> Please set a patch date first.</p>
+                        {% endif %}
+                        
+                        <p>Please review and approve the patching schedule. Approval deadline: <strong>Tuesday EOD</strong></p>
+                    </div>
+                    
+                    {% if server['Q' + current_quarter|string + ' Patch Date'] %}
+                    <div class="form-group">
+                        <div class="form-check">
+                            <input class="form-check-input" type="checkbox" id="confirm_approval" required>
+                            <label class="form-check-label" for="confirm_approval">
+                                I approve the above schedule for patching
+                            </label>
+                        </div>
+                    </div>
+                    
+                    <button type="submit" class="btn btn-success">Approve Schedule</button>
+                    {% else %}
+                    <p class="text-muted">Please set a patch date before approval.</p>
+                    {% endif %}
+                </form>
+                {% else %}
+                <div class="alert alert-success">
+                    <h5>Schedule Approved ✓</h5>
+                    <p>You have approved the patching schedule for {{ quarter_name }}.</p>
+                    {% if server['Q' + current_quarter|string + ' Patch Date'] %}
+                    <p><strong>Approved Schedule:</strong><br>
+                    Date: {{ server['Q' + current_quarter|string + ' Patch Date'] }}<br>
+                    Time: {{ server['Q' + current_quarter|string + ' Patch Time'] }} ({{ server['Server Timezone'] }})</p>
+                    {% endif %}
+                </div>
+                {% endif %}
+            </div>
+        </div>
+    </div>
+</div>
+
+<div class="row">
+    <div class="col-md-12">
+        <div class="card">
+            <div class="card-header">
+                <h3>Current Schedule</h3>
+            </div>
+            <div class="card-body">
+                <div class="row">
+                    {% for quarter_id, quarter_info in quarters.items() %}
+                    <div class="col-md-6">
+                        <div class="schedule-row">
+                            <h4>{{ quarter_info.name }} 
+                                {% if quarter_id == current_quarter %}
+                                    <span class="badge badge-info">Current</span>
+                                {% endif %}
+                            </h4>
+                            <p>
+                                {% if server['Q' + quarter_id + ' Patch Date'] %}
+                                    <strong>Date:</strong> {{ server['Q' + quarter_id + ' Patch Date'] }}<br>
+                                    <strong>Time:</strong> {{ server['Q' + quarter_id + ' Patch Time'] }} ({{ server['Server Timezone'] }})
+                                {% else %}
+                                    Not scheduled
+                                {% endif %}
+                            </p>
+                        </div>
+                    </div>
+                    {% endfor %}
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
+<div class="row">
+    <div class="col-md-12">
+        <div class="card">
+            <div class="card-header">
+                <h3>Important Notes</h3>
+            </div>
+            <div class="card-body">
+                <ul>
+                    <li>All times are in <strong>{{ server['Server Timezone'] }}</strong> timezone</li>
+                    <li>Default patching windows are Thursday evenings</li>
+                    <li>Schedule changes are locked from Thursday to Tuesday</li>
+                    <li>Pre-checks will be performed 5 hours before patching</li>
+                    <li>You will receive email notifications throughout the process</li>
+                    {% if user_role == 'admin' %}
+                    <li><strong>Admin privileges:</strong> You can modify all server settings and view all servers</li>
+                    {% elif user_role == 'user' %}
+                    <li><strong>User privileges:</strong> You can only modify schedules for servers you own</li>
+                    {% elif user_role == 'readonly' %}
+                    <li><strong>Read-only access:</strong> You can view server information but cannot make changes</li>
+                    {% endif %}
+                </ul>
+            </div>
+        </div>
+    </div>
+</div>
+
+<div class="mt-4">
+    <a href="{{ url_for('dashboard') }}" class="btn btn-secondary">Back to Dashboard</a>
+</div>
+
+<script>
+// Get server timezone information
+document.addEventListener('DOMContentLoaded', function() {
+    fetch('/api/server_timezone/{{ server["Server Name"] }}')
+        .then(response => response.json())
+        .then(data => {
+            document.getElementById('timezone-abbr').textContent = data.abbreviation;
+            document.getElementById('timezone-info').innerHTML = 
+                `<strong>Current time in ${data.abbreviation}:</strong> ${data.current_time} (UTC${data.offset})`;
+        })
+        .catch(error => console.error('Error fetching timezone info:', error));
+});
+
+// Add JavaScript for dynamic date selection
+document.getElementById('quarter').addEventListener('change', function() {
+    const quarter = this.value;
+    fetch(`/api/available_dates/${quarter}`)
+        .then(response => response.json())
+        .then(dates => {
+            const dateInput = document.getElementById('patch_date');
+            dateInput.setAttribute('list', 'available-dates');
+            
+            // Create datalist for available dates
+            let datalist = document.getElementById('available-dates');
+            if (!datalist) {
+                datalist = document.createElement('datalist');
+                datalist.id = 'available-dates';
+                dateInput.parentNode.appendChild(datalist);
+            }
+            
+            datalist.innerHTML = '';
+            dates.forEach(date => {
+                const option = document.createElement('option');
+                option.value = date;
+                datalist.appendChild(option);
+            });
+        });
+});
+
+// AI Recommendation functionality
+document.getElementById('get-ai-recommendation').addEventListener('click', function(e) {
+    e.preventDefault();
+    const serverName = '{{ server["Server Name"] }}';
+    const quarter = document.getElementById('quarter').value;
+    
+    // Show loading state
+    document.getElementById('ai-recommendations').style.display = 'block';
+    document.getElementById('recommended-datetime').textContent = 'Loading...';
+    document.getElementById('confidence-level').textContent = '-';
+    document.getElementById('reasoning').textContent = '-';
+    
+    fetch(`/api/ai_recommendation/${serverName}/${quarter}`)
+        .then(response => response.json())
+        .then(data => {
+            if (data.success) {
+                document.getElementById('recommended-datetime').textContent = 
+                    `${data.recommended_date} at ${data.recommended_time}`;
+                document.getElementById('confidence-level').textContent = data.confidence_level;
+                document.getElementById('reasoning').textContent = data.reasoning.join(', ');
+                
+                // Store recommendation data for use button
+                document.getElementById('use-prediction').setAttribute('data-date', data.recommended_date);
+                document.getElementById('use-prediction').setAttribute('data-time', data.recommended_time);
+            } else {
+                document.getElementById('recommended-datetime').textContent = 'No recommendation available';
+                document.getElementById('confidence-level').textContent = 'N/A';
+                document.getElementById('reasoning').textContent = data.message || 'Unable to generate recommendation';
+            }
+        })
+        .catch(error => {
+            console.error('Error fetching AI recommendation:', error);
+            document.getElementById('recommended-datetime').textContent = 'Error loading recommendation';
+            document.getElementById('confidence-level').textContent = 'Error';
+            document.getElementById('reasoning').textContent = 'Please try again later';
+        });
+});
+
+// Use AI recommendation
+document.getElementById('use-prediction').addEventListener('click', function() {
+    const recommendedDate = this.getAttribute('data-date');
+    const recommendedTime = this.getAttribute('data-time');
+    
+    if (recommendedDate && recommendedTime) {
+        document.getElementById('patch_date').value = recommendedDate;
+        document.getElementById('patch_time').value = recommendedTime;
+        
+        // Hide recommendations after use
+        document.getElementById('ai-recommendations').style.display = 'none';
+        
+        // Show success message
+        const successMsg = document.createElement('div');
+        successMsg.className = 'alert alert-success';
+        successMsg.innerHTML = '✅ AI recommendation applied! You can now save the schedule.';
+        document.getElementById('ai-recommendations').parentNode.insertBefore(successMsg, document.getElementById('ai-recommendations').nextSibling);
+        
+        setTimeout(() => successMsg.remove(), 5000);
+    }
+});
+</script>
+{% endblock %}

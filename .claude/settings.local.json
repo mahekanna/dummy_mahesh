@@ -1,0 +1,40 @@
+{
+  "permissions": {
+    "allow": [
+      "Bash(python -m pytest tests/test_basic.py -v)",
+      "Bash(python -m pytest tests/test_basic.py::TestConfig::test_get_current_quarter -v)",
+      "Bash(python -m pytest tests/ -v)",
+      "Bash(python:*)",
+      "Bash(pip install:*)",
+      "Bash(source:*)",
+      "Bash(chmod:*)",
+      "Bash(rm:*)",
+      "Bash(ls:*)",
+      "Bash(cp:*)",
+      "Bash(grep:*)",
+      "Bash(pkill:*)",
+      "Bash(./venv/bin/python:*)",
+      "Bash(mkdir:*)",
+      "Bash(for file in *.html)",
+      "Bash(do if grep -q \"{{$\" \"$file\")",
+      "Bash(then echo \"File with CSS double braces: $file\")",
+      "Bash(fi)",
+      "Bash(done)",
+      "Bash(for:*)",
+      "Bash(do echo \"=== Checking $file ===\")",
+      "Bash(./setup_automated_reports.sh:*)",
+      "Bash(curl:*)",
+      "Bash(fuser:*)",
+      "Bash(rg:*)",
+      "Bash(find:*)",
+      "Bash(sudo cat:*)",
+      "Bash(sudo grep -n \"DB_HOST\\|DATABASE_CONFIG\\|USE_SQLITE\" /opt/linux_patching_automation/config/settings.py)",
+      "Bash(systemctl:*)",
+      "Bash(sudo grep -n \"PRECHECK_HOURS_BEFORE\" /opt/linux_patching_automation/config/settings.py)",
+      "Bash(sudo grep -n \"authenticate_user\" /opt/linux_patching_automation/web_portal/app.py)",
+      "Bash(sudo cp:*)",
+      "Bash(sudo chown:*)"
+    ],
+    "deny": []
+  }
+}

@@ -1,0 +1,62 @@
+{
+    "admin_settings": {
+        "admin_email": "admin@example.com",
+        "backup_admin_email": "backup-admin@example.com",
+        "notification_settings": {
+            "send_daily_reports": true,
+            "send_weekly_reports": true,
+            "send_monthly_reports": true,
+            "send_patch_completion_reports": true,
+            "send_error_alerts": true
+        },
+        "report_schedule": {
+            "daily_report_time": "08:00",
+            "weekly_report_day": "Monday",
+            "weekly_report_time": "09:00",
+            "monthly_report_day": 1,
+            "monthly_report_time": "10:00"
+        }
+    },
+    "ldap_configuration": {
+        "enabled": false,
+        "server": "ldap://ldap.example.com:389",
+        "base_dn": "dc=example,dc=com",
+        "user_search_base": "ou=users,dc=example,dc=com",
+        "group_search_base": "ou=groups,dc=example,dc=com",
+        "admin_groups": [
+            "patching_admins",
+            "system_admins"
+        ],
+        "user_groups": [
+            "patching_users",
+            "server_owners"
+        ],
+        "bind_dn": "cn=service_account,ou=service,dc=example,dc=com",
+        "bind_password_encrypted": "",
+        "sync_schedule": {
+            "enabled": true,
+            "frequency": "daily",
+            "time": "02:00"
+        }
+    },
+    "database_sync": {
+        "enabled": true,
+        "csv_file_path": "/opt/linux_patching_automation/data/servers.csv",
+        "csv_sync_schedule": {
+            "frequency": "daily",
+            "time": "01:00",
+            "backup_before_sync": true
+        },
+        "data_retention": {
+            "keep_historical_data_days": 90,
+            "keep_log_files_days": 30,
+            "keep_backup_files_days": 7
+        }
+    },
+    "system_maintenance": {
+        "auto_cleanup_enabled": true,
+        "log_rotation_enabled": true,
+        "backup_retention_days": 30,
+        "temp_file_cleanup_days": 7
+    }
+}

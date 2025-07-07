@@ -1,0 +1,90 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <title>Monthly Patching Notice</title>
+    <style>
+        body {{
+            font-family: Arial, sans-serif;
+            line-height: 1.6;
+            color: #333;
+            max-width: 800px;
+            margin: 0 auto;
+            padding: 20px;
+        }}
+        h1, h2, h3 {{
+            color: #0056b3;
+        }}
+        table {{
+            border-collapse: collapse;
+            width: 100%;
+            margin: 20px 0;
+        }}
+        th, td {{
+            border: 1px solid #ddd;
+            padding: 8px;
+            text-align: left;
+        }}
+        th {{
+            background-color: #f2f2f2;
+            font-weight: bold;
+        }}
+        .important {{
+            color: #cc0000;
+            font-weight: bold;
+        }}
+        .highlight {{
+            background-color: #ffffd0;
+            padding: 2px 5px;
+        }}
+        .footer {{
+            margin-top: 40px;
+            padding-top: 10px;
+            border-top: 1px solid #eee;
+            font-size: 0.9em;
+            color: #666;
+        }}
+    </style>
+</head>
+<body>
+    <h2>Monthly Patching Schedule Notice - {quarter}</h2>
+    
+    <p>Dear {owner_email},</p>
+    
+    <p>This is a monthly notice regarding the upcoming patching schedule for <span class="highlight">{quarter}</span>. 
+    Please review and update your server patching schedule as needed.</p>
+    
+    <h3>Proposed Patching Dates (Default: Thursdays)</h3>
+    <p>{proposed_dates}</p>
+    
+    <h3>Your Servers</h3>
+    {server_table}
+    
+    <h3>Action Required</h3>
+    <ul>
+        <li>Review the proposed dates above</li>
+        <li>Log into the patching portal to confirm or modify dates/times</li>
+        <li>Ensure all information is accurate</li>
+        <li><span class="important">Complete your selections by <strong>{deadline_date}</strong></span></li>
+    </ul>
+    
+    <h3>Important Notes</h3>
+    <ul>
+        <li>Changes can be made until the freeze period (Thursday to Tuesday)</li>
+        <li>Default time slots will be assigned if no preference is specified</li>
+        <li>Coordination may be required for servers in the same environment</li>
+        <li>All times should be specified in the server's local timezone</li>
+    </ul>
+    
+    <p>Portal Link: <a href="http://patching-portal.company.com">Patching Portal</a></p>
+    
+    <p>For questions or assistance, please contact the Infrastructure Team.</p>
+    
+    <p>Best regards,<br>
+    Infrastructure Patching Team</p>
+    
+    <div class="footer">
+        <p><small>This is an automated message from the patching management system.</small></p>
+        <p><small>Quarter Definition: {quarter} covers the following months: {quarter_description}</small></p>
+    </div>
+</body>
+</html>

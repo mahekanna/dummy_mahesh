@@ -1,0 +1,1021 @@
+{% extends "base.html" %}
+
+{% block title %}Reports Dashboard - Patching Portal{% endblock %}
+
+{% block extra_head %}
+<script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+<style>
+    .report-card {
+        margin-bottom: 20px;
+    }
+    .stat-box {
+        background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+        color: white;
+        padding: 20px;
+        border-radius: 10px;
+        text-align: center;
+        margin-bottom: 20px;
+    }
+    .stat-number {
+        font-size: 2.5em;
+        font-weight: bold;
+        margin-bottom: 5px;
+    }
+    .stat-label {
+        font-size: 0.9em;
+        opacity: 0.9;
+    }
+    .chart-container {
+        position: relative;
+        height: 400px;
+        margin-bottom: 30px;
+    }
+    .table-container {
+        max-height: 400px;
+        overflow-y: auto;
+        border: 1px solid #ddd;
+        border-radius: 5px;
+    }
+    .report-header {
+        background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+        color: white;
+        padding: 30px;
+        border-radius: 10px;
+        text-align: center;
+        margin-bottom: 30px;
+    }
+    .badge-success { background-color: #28a745; }
+    .badge-warning { background-color: #ffc107; color: #212529; }
+    .badge-danger { background-color: #dc3545; }
+    .badge-info { background-color: #17a2b8; }
+    .badge-secondary { background-color: #6c757d; }
+    .refresh-btn {
+        position: fixed;
+        bottom: 20px;
+        right: 20px;
+        z-index: 1000;
+    }
+    .report-filter {
+        background-color: #f8f9fa;
+        padding: 15px;
+        border-radius: 5px;
+        margin-bottom: 20px;
+    }
+    .badge-lg {
+        font-size: 0.9em;
+        padding: 8px 12px;
+        cursor: pointer;
+        transition: all 0.3s ease;
+    }
+    .badge-lg:hover {
+        transform: scale(1.05);
+        box-shadow: 0 2px 4px rgba(0,0,0,0.2);
+    }
+    .status-summary-bar .badge {
+        margin: 2px;
+        min-width: 120px;
+    }
+    .chart-container canvas {
+        cursor: pointer;
+    }
+    .chart-container canvas:hover {
+        opacity: 0.8;
+    }
+    .clickable-chart {
+        position: relative;
+    }
+    .clickable-chart::after {
+        content: "Click to filter";
+        position: absolute;
+        top: 10px;
+        right: 10px;
+        background: rgba(0,0,0,0.7);
+        color: white;
+        padding: 2px 6px;
+        border-radius: 3px;
+        font-size: 0.8em;
+        opacity: 0;
+        transition: opacity 0.3s ease;
+    }
+    .clickable-chart:hover::after {
+        opacity: 1;
+    }
+    
+    /* CSV Report Styling */
+    .csv-report-container {
+        font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+        line-height: 1.4;
+        color: #000000;
+    }
+    
+    .csv-section-title {
+        font-size: 18px;
+        font-weight: 700;
+        color: #000000;
+        margin: 20px 0 10px 0;
+        padding: 12px 15px;
+        border: 2px solid #3498db;
+        border-bottom: 3px solid #3498db;
+        background: linear-gradient(90deg, #f8f9fa 0%, #e9ecef 100%);
+        border-radius: 8px;
+    }
+    
+    .csv-metadata {
+        font-size: 14px;
+        margin: 5px 0;
+        padding: 8px 12px;
+        background-color: #f8f9fa;
+        border: 1px solid #dee2e6;
+        border-left: 3px solid #6c757d;
+        border-radius: 4px;
+        color: #000000;
+    }
+    
+    .csv-metadata strong {
+        color: #000000;
+        font-weight: 600;
+    }
+    
+    /* Use exact same styling as Completed Patches table */
+    .csv-data-table {
+        /* No custom styling - let Bootstrap handle it */
+    }
+    
+    /* Remove all other complex styling */
+    
+</style>
+{% endblock %}
+
+{% block content %}
+<div class="report-header">
+    <h1>📊 Patching Reports Dashboard</h1>
+    <p>Real-time insights and analytics for Linux patching operations</p>
+    <small>Last updated: <span id="last-updated">{{ current_time }}</span></small>
+</div>
+
+<!-- Advanced Report Filters -->
+<div class="report-filter">
+    <div class="row">
+        <div class="col-md-2">
+            <label for="report-type">Report Type:</label>
+            <select id="report-type" class="form-control" onchange="loadReport()">
+                <option value="daily">Daily Report</option>
+                <option value="weekly">Weekly Report</option>
+                <option value="monthly">Monthly Report</option>
+            </select>
+        </div>
+        <div class="col-md-2">
+            <label for="quarter-filter">Quarter:</label>
+            <select id="quarter-filter" class="form-control" onchange="loadReport()">
+                <option value="{{ current_quarter }}" selected>Q{{ current_quarter }} (Current)</option>
+                {% for q in ['1', '2', '3', '4'] %}
+                    {% if q != current_quarter %}
+                    <option value="{{ q }}">Q{{ q }}</option>
+                    {% endif %}
+                {% endfor %}
+            </select>
+        </div>
+        <div class="col-md-2">
+            <label for="host-group-filter">Host Group:</label>
+            <select id="host-group-filter" class="form-control" onchange="loadReport()">
+                <option value="all">All Groups</option>
+                {% for group_name in host_groups %}
+                <option value="{{ group_name }}">{{ group_name.replace('_', ' ').title() }}</option>
+                {% endfor %}
+            </select>
+        </div>
+        <div class="col-md-2">
+            <label for="status-filter">Status Filter:</label>
+            <select id="status-filter" class="form-control" onchange="loadReport()">
+                <option value="all">All Status</option>
+                <option value="completed">Completed</option>
+                <option value="scheduled">Scheduled</option>
+                <option value="approved">Approved</option>
+                <option value="pending">Approval Pending</option>
+                <option value="failed">Failed</option>
+            </select>
+        </div>
+        <div class="col-md-2">
+            <label for="percentage-view">View Type:</label>
+            <select id="percentage-view" class="form-control" onchange="updatePercentageView()">
+                <option value="numbers">Numbers</option>
+                <option value="percentages">Percentages</option>
+                <option value="both">Both</option>
+            </select>
+        </div>
+        <div class="col-md-2">
+            <br>
+            <button class="btn btn-primary" onclick="loadReport()">🔄 Refresh</button>
+            <button class="btn btn-success" onclick="exportReport()">📊 Export</button>
+        </div>
+    </div>
+    
+    <!-- Status Summary Bar -->
+    <div class="row mt-3">
+        <div class="col-md-12">
+            <div class="status-summary-bar" style="background-color: #f8f9fa; padding: 10px; border-radius: 5px;">
+                <div class="row text-center">
+                    <div class="col-md-2">
+                        <span class="badge badge-info badge-lg" id="total-count">Total: 0</span>
+                    </div>
+                    <div class="col-md-2">
+                        <span class="badge badge-success badge-lg" id="completed-count">Completed: 0 (0%)</span>
+                    </div>
+                    <div class="col-md-2">
+                        <span class="badge badge-primary badge-lg" id="scheduled-count">Scheduled: 0 (0%)</span>
+                    </div>
+                    <div class="col-md-2">
+                        <span class="badge badge-warning badge-lg" id="approved-count">Approved: 0 (0%)</span>
+                    </div>
+                    <div class="col-md-2">
+                        <span class="badge badge-secondary badge-lg" id="pending-count">Pending: 0 (0%)</span>
+                    </div>
+                    <div class="col-md-2">
+                        <span class="badge badge-danger badge-lg" id="failed-count">Failed: 0 (0%)</span>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- Statistics Overview -->
+<div class="row" id="stats-overview">
+    <div class="col-md-2">
+        <div class="stat-box" style="background: linear-gradient(135deg, #4facfe 0%, #00f2fe 100%);">
+            <div class="stat-number" id="total-servers">{{ stats.total_servers }}</div>
+            <div class="stat-label">Total Servers</div>
+        </div>
+    </div>
+    <div class="col-md-2">
+        <div class="stat-box" style="background: linear-gradient(135deg, #43e97b 0%, #38f9d7 100%);">
+            <div class="stat-number" id="approved-servers">{{ stats.approved }}</div>
+            <div class="stat-label">Approved</div>
+        </div>
+    </div>
+    <div class="col-md-2">
+        <div class="stat-box" style="background: linear-gradient(135deg, #fa709a 0%, #fee140 100%);">
+            <div class="stat-number" id="pending-servers">{{ stats.pending }}</div>
+            <div class="stat-label">Pending</div>
+        </div>
+    </div>
+    <div class="col-md-2">
+        <div class="stat-box" style="background: linear-gradient(135deg, #a8edea 0%, #fed6e3 100%);">
+            <div class="stat-number" id="scheduled-servers">{{ stats.scheduled }}</div>
+            <div class="stat-label">Scheduled</div>
+        </div>
+    </div>
+    <div class="col-md-2">
+        <div class="stat-box" style="background: linear-gradient(135deg, #d299c2 0%, #fef9d7 100%);">
+            <div class="stat-number" id="completed-servers">{{ stats.completed }}</div>
+            <div class="stat-label">Completed</div>
+        </div>
+    </div>
+    <div class="col-md-2">
+        <div class="stat-box" style="background: linear-gradient(135deg, #89f7fe 0%, #66a6ff 100%);">
+            <div class="stat-number" id="failed-servers">{{ stats.failed }}</div>
+            <div class="stat-label">Failed</div>
+        </div>
+    </div>
+</div>
+
+<!-- Charts Row -->
+<div class="row">
+    <div class="col-md-6">
+        <div class="card report-card">
+            <div class="card-header">
+                <h5>📈 Approval Status Distribution</h5>
+            </div>
+            <div class="card-body">
+                <div class="chart-container clickable-chart">
+                    <canvas id="approvalChart"></canvas>
+                </div>
+            </div>
+        </div>
+    </div>
+    <div class="col-md-6">
+        <div class="card report-card">
+            <div class="card-header">
+                <h5>🏗️ Servers by Host Group</h5>
+            </div>
+            <div class="card-body">
+                <div class="chart-container clickable-chart">
+                    <canvas id="hostGroupChart"></canvas>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- Progress Timeline -->
+<div class="row">
+    <div class="col-md-12">
+        <div class="card report-card">
+            <div class="card-header">
+                <h5>📅 Patching Timeline Progress</h5>
+            </div>
+            <div class="card-body">
+                <div class="chart-container clickable-chart">
+                    <canvas id="timelineChart"></canvas>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- Detailed Tables -->
+<div class="row">
+    <div class="col-md-6">
+        <div class="card report-card">
+            <div class="card-header">
+                <h5>🔔 Upcoming Patches (Next 7 Days)</h5>
+            </div>
+            <div class="card-body">
+                <div class="table-container">
+                    <table class="table table-striped table-sm" id="upcoming-patches-table">
+                        <thead class="thead-dark">
+                            <tr>
+                                <th>Server</th>
+                                <th>Date</th>
+                                <th>Time</th>
+                                <th>Days Until</th>
+                                <th>Owner</th>
+                            </tr>
+                        </thead>
+                        <tbody id="upcoming-patches-body">
+                            <!-- Populated by JavaScript -->
+                        </tbody>
+                    </table>
+                </div>
+            </div>
+        </div>
+    </div>
+    <div class="col-md-6">
+        <div class="card report-card">
+            <div class="card-header">
+                <h5>⚠️ Attention Required</h5>
+            </div>
+            <div class="card-body">
+                <div class="table-container">
+                    <table class="table table-striped table-sm" id="attention-table">
+                        <thead class="thead-dark">
+                            <tr>
+                                <th>Server</th>
+                                <th>Issue</th>
+                                <th>Owner</th>
+                                <th>Status</th>
+                            </tr>
+                        </thead>
+                        <tbody id="attention-body">
+                            <!-- Populated by JavaScript -->
+                        </tbody>
+                    </table>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- Completed Servers List -->
+<div class="row">
+    <div class="col-md-12">
+        <div class="card report-card">
+            <div class="card-header">
+                <h5>✅ Completed Patches</h5>
+                <div class="float-right">
+                    <button class="btn btn-sm btn-outline-primary" onclick="exportCompletedList()">📊 Export</button>
+                    <button class="btn btn-sm btn-outline-success" onclick="filterCompleted()">🔍 Filter</button>
+                </div>
+            </div>
+            <div class="card-body">
+                <div class="table-container">
+                    <table class="table table-striped table-sm" id="completed-servers-table">
+                        <thead class="thead-dark">
+                            <tr>
+                                <th>Server Name</th>
+                                <th>Host Group</th>
+                                <th>Patch Date</th>
+                                <th>Patch Time</th>
+                                <th>Completion Date</th>
+                                <th>Duration</th>
+                                <th>Owner</th>
+                                <th>Status</th>
+                            </tr>
+                        </thead>
+                        <tbody id="completed-servers-body">
+                            <!-- Populated by JavaScript -->
+                        </tbody>
+                    </table>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- Text Reports Section -->
+<div class="row">
+    <div class="col-md-12">
+        <div class="card report-card">
+            <div class="card-header">
+                <h5>📊 CSV Reports & Export</h5>
+            </div>
+            <div class="card-body">
+                <div class="row">
+                    <div class="col-md-2">
+                        <label for="text-report-type">Report Type:</label>
+                        <select id="text-report-type" class="form-control">
+                            <option value="summary">Summary Report</option>
+                            <option value="detailed">Detailed Server List</option>
+                            <option value="completed">Completed Patches</option>
+                            <option value="pending">Pending Approvals</option>
+                            <option value="failed">Failed Patches</option>
+                            <option value="upcoming">Upcoming Patches</option>
+                        </select>
+                    </div>
+                    <div class="col-md-2">
+                        <label for="text-report-quarter">Quarter:</label>
+                        <select id="text-report-quarter" class="form-control">
+                            <option value="{{ current_quarter }}" selected>Q{{ current_quarter }} (Current)</option>
+                            {% for q in ['1', '2', '3', '4'] %}
+                                {% if q != current_quarter %}
+                                <option value="{{ q }}">Q{{ q }}</option>
+                                {% endif %}
+                            {% endfor %}
+                        </select>
+                    </div>
+                    <div class="col-md-2">
+                        <label for="text-report-hostgroup">Host Group:</label>
+                        <select id="text-report-hostgroup" class="form-control">
+                            <option value="all">All Groups</option>
+                            {% for group_name in host_groups %}
+                            <option value="{{ group_name }}">{{ group_name.replace('_', ' ').title() }}</option>
+                            {% endfor %}
+                        </select>
+                    </div>
+                    <div class="col-md-2">
+                        <label for="text-report-status">Status Filter:</label>
+                        <select id="text-report-status" class="form-control">
+                            <option value="all">All Status</option>
+                            <option value="completed">Completed</option>
+                            <option value="scheduled">Scheduled</option>
+                            <option value="approved">Approved</option>
+                            <option value="pending">Approval Pending</option>
+                            <option value="failed">Failed</option>
+                        </select>
+                    </div>
+                    <div class="col-md-4">
+                        <br>
+                        <button class="btn btn-primary" onclick="generateTextReport()">📊 Generate CSV</button>
+                        <button class="btn btn-success" onclick="exportTextReport()">💾 Download CSV</button>
+                    </div>
+                </div>
+                <hr>
+                <div id="text-report-output" style="background-color: #ffffff; padding: 15px; border-radius: 5px; max-height: 400px; overflow: auto; display: none; color: #000000 !important;">
+                    <!-- CSV report content will be displayed here as a table -->
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- Host Group Breakdown -->
+<div class="row">
+    <div class="col-md-12">
+        <div class="card report-card">
+            <div class="card-header">
+                <h5>🏢 Host Group Detailed Breakdown</h5>
+            </div>
+            <div class="card-body">
+                <div class="table-container">
+                    <table class="table table-striped" id="host-group-breakdown">
+                        <thead class="thead-dark">
+                            <tr>
+                                <th>Host Group</th>
+                                <th>Total Servers</th>
+                                <th>Approved</th>
+                                <th>Pending</th>
+                                <th>Scheduled</th>
+                                <th>Completed</th>
+                                <th>Failed</th>
+                                <th>Progress</th>
+                            </tr>
+                        </thead>
+                        <tbody id="host-group-breakdown-body">
+                            <!-- Populated by JavaScript -->
+                        </tbody>
+                    </table>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- Refresh Button -->
+<button class="btn btn-primary btn-lg refresh-btn" onclick="loadReport()" title="Refresh Data">
+    🔄
+</button>
+
+<script>
+let approvalChart, hostGroupChart, timelineChart;
+
+// Initialize dashboard
+document.addEventListener('DOMContentLoaded', function() {
+    loadReport();
+    
+    // Auto-refresh every 5 minutes
+    setInterval(loadReport, 300000);
+});
+
+function loadReport() {
+    const reportType = document.getElementById('report-type').value;
+    const quarter = document.getElementById('quarter-filter').value;
+    const hostGroup = document.getElementById('host-group-filter').value;
+    const statusFilter = document.getElementById('status-filter').value;
+    
+    // Show loading indicators
+    showLoading();
+    
+    // Fetch report data with all filters
+    fetch(`/api/reports/data?type=${reportType}&quarter=${quarter}&host_group=${hostGroup}&status=${statusFilter}`)
+        .then(response => response.json())
+        .then(data => {
+            if (data.success) {
+                updateDashboard(data.report_data);
+                updateStatusSummaryBar(data.report_data.stats);
+                document.getElementById('last-updated').textContent = new Date().toLocaleString();
+            } else {
+                showError('Failed to load report: ' + data.message);
+            }
+        })
+        .catch(error => {
+            console.error('Error loading report:', error);
+            showError('Error loading report data');
+        });
+}
+
+function updateDashboard(data) {
+    // Update statistics
+    document.getElementById('total-servers').textContent = data.stats.total_servers;
+    document.getElementById('approved-servers').textContent = data.stats.approved;
+    document.getElementById('pending-servers').textContent = data.stats.pending;
+    document.getElementById('scheduled-servers').textContent = data.stats.scheduled;
+    document.getElementById('completed-servers').textContent = data.stats.completed;
+    document.getElementById('failed-servers').textContent = data.stats.failed;
+    
+    // Update charts
+    updateApprovalChart(data.stats);
+    updateHostGroupChart(data.host_group_breakdown);
+    updateTimelineChart(data.timeline_data);
+    
+    // Update tables
+    updateUpcomingPatchesTable(data.upcoming_patches);
+    updateAttentionTable(data.attention_required);
+    updateCompletedServersTable(data.completed_servers);
+    updateHostGroupBreakdownTable(data.host_group_breakdown);
+}
+
+function updateApprovalChart(stats) {
+    const ctx = document.getElementById('approvalChart').getContext('2d');
+    
+    if (approvalChart) {
+        approvalChart.destroy();
+    }
+    
+    approvalChart = new Chart(ctx, {
+        type: 'doughnut',
+        data: {
+            labels: ['Approved', 'Pending', 'Scheduled', 'Completed', 'Failed'],
+            datasets: [{
+                data: [stats.approved, stats.pending, stats.scheduled, stats.completed, stats.failed],
+                backgroundColor: [
+                    '#28a745',
+                    '#ffc107',
+                    '#17a2b8',
+                    '#6f42c1',
+                    '#dc3545'
+                ],
+                borderWidth: 2,
+                borderColor: '#fff'
+            }]
+        },
+        options: {
+            responsive: true,
+            maintainAspectRatio: false,
+            plugins: {
+                legend: {
+                    position: 'bottom'
+                }
+            },
+            onClick: (event, elements) => {
+                if (elements.length > 0) {
+                    const index = elements[0].index;
+                    const labels = ['approved', 'pending', 'scheduled', 'completed', 'failed'];
+                    filterByStatus(labels[index]);
+                }
+            }
+        }
+    });
+}
+
+function updateHostGroupChart(hostGroupData) {
+    const ctx = document.getElementById('hostGroupChart').getContext('2d');
+    
+    if (hostGroupChart) {
+        hostGroupChart.destroy();
+    }
+    
+    const labels = Object.keys(hostGroupData);
+    const data = Object.values(hostGroupData).map(group => group.total);
+    
+    hostGroupChart = new Chart(ctx, {
+        type: 'bar',
+        data: {
+            labels: labels.map(label => label.replace('_', ' ').toUpperCase()),
+            datasets: [{
+                label: 'Servers',
+                data: data,
+                backgroundColor: [
+                    '#4facfe',
+                    '#43e97b',
+                    '#fa709a',
+                    '#a8edea',
+                    '#d299c2',
+                    '#89f7fe'
+                ],
+                borderWidth: 1
+            }]
+        },
+        options: {
+            responsive: true,
+            maintainAspectRatio: false,
+            scales: {
+                y: {
+                    beginAtZero: true
+                }
+            },
+            onClick: (event, elements) => {
+                if (elements.length > 0) {
+                    const index = elements[0].index;
+                    const hostGroup = labels[index];
+                    document.getElementById('host-group-filter').value = hostGroup;
+                    loadReport();
+                }
+            }
+        }
+    });
+}
+
+function updateTimelineChart(timelineData) {
+    const ctx = document.getElementById('timelineChart').getContext('2d');
+    
+    if (timelineChart) {
+        timelineChart.destroy();
+    }
+    
+    timelineChart = new Chart(ctx, {
+        type: 'line',
+        data: {
+            labels: timelineData.labels || ['Week 1', 'Week 2', 'Week 3', 'Week 4'],
+            datasets: [{
+                label: 'Completed Patches',
+                data: timelineData.completed || [2, 5, 8, 12],
+                borderColor: '#28a745',
+                backgroundColor: 'rgba(40, 167, 69, 0.1)',
+                tension: 0.4
+            }, {
+                label: 'Scheduled Patches',
+                data: timelineData.scheduled || [1, 3, 6, 10],
+                borderColor: '#17a2b8',
+                backgroundColor: 'rgba(23, 162, 184, 0.1)',
+                tension: 0.4
+            }]
+        },
+        options: {
+            responsive: true,
+            maintainAspectRatio: false,
+            scales: {
+                y: {
+                    beginAtZero: true
+                }
+            }
+        }
+    });
+}
+
+function updateUpcomingPatchesTable(patches) {
+    const tbody = document.getElementById('upcoming-patches-body');
+    tbody.innerHTML = '';
+    
+    if (!patches || patches.length === 0) {
+        tbody.innerHTML = '<tr><td colspan="5" class="text-center text-muted">No upcoming patches</td></tr>';
+        return;
+    }
+    
+    patches.forEach(patch => {
+        const row = document.createElement('tr');
+        const urgencyClass = patch.days_until <= 1 ? 'badge-danger' : 
+                           patch.days_until <= 3 ? 'badge-warning' : 'badge-info';
+        
+        row.innerHTML = `
+            <td>${patch.server}</td>
+            <td>${patch.date}</td>
+            <td>${patch.time}</td>
+            <td><span class="badge ${urgencyClass}">${patch.days_until} day(s)</span></td>
+            <td>${patch.owner}</td>
+        `;
+        tbody.appendChild(row);
+    });
+}
+
+function updateAttentionTable(attentionItems) {
+    const tbody = document.getElementById('attention-body');
+    tbody.innerHTML = '';
+    
+    if (!attentionItems || attentionItems.length === 0) {
+        tbody.innerHTML = '<tr><td colspan="4" class="text-center text-muted">No items requiring attention</td></tr>';
+        return;
+    }
+    
+    attentionItems.forEach(item => {
+        const row = document.createElement('tr');
+        const statusClass = item.priority === 'high' ? 'badge-danger' : 
+                          item.priority === 'medium' ? 'badge-warning' : 'badge-info';
+        
+        row.innerHTML = `
+            <td>${item.server}</td>
+            <td>${item.issue}</td>
+            <td>${item.owner}</td>
+            <td><span class="badge ${statusClass}">${item.status}</span></td>
+        `;
+        tbody.appendChild(row);
+    });
+}
+
+function updateHostGroupBreakdownTable(breakdown) {
+    const tbody = document.getElementById('host-group-breakdown-body');
+    tbody.innerHTML = '';
+    
+    Object.entries(breakdown).forEach(([groupName, data]) => {
+        const row = document.createElement('tr');
+        const progressPercent = Math.round((data.completed / data.total) * 100) || 0;
+        
+        row.innerHTML = `
+            <td><strong>${groupName.replace('_', ' ').toUpperCase()}</strong></td>
+            <td>${data.total}</td>
+            <td><span class="badge badge-success">${data.approved}</span></td>
+            <td><span class="badge badge-warning">${data.pending}</span></td>
+            <td><span class="badge badge-info">${data.scheduled}</span></td>
+            <td><span class="badge badge-primary">${data.completed}</span></td>
+            <td><span class="badge badge-danger">${data.failed}</span></td>
+            <td>
+                <div class="progress" style="height: 20px;">
+                    <div class="progress-bar" style="width: ${progressPercent}%">${progressPercent}%</div>
+                </div>
+            </td>
+        `;
+        tbody.appendChild(row);
+    });
+}
+
+function showLoading() {
+    // Add loading spinners to charts
+    const charts = ['approvalChart', 'hostGroupChart', 'timelineChart'];
+    charts.forEach(chartId => {
+        const canvas = document.getElementById(chartId);
+        const ctx = canvas.getContext('2d');
+        ctx.clearRect(0, 0, canvas.width, canvas.height);
+        ctx.font = '16px Arial';
+        ctx.textAlign = 'center';
+        ctx.fillText('Loading...', canvas.width / 2, canvas.height / 2);
+    });
+}
+
+function showError(message) {
+    // Show error toast or alert
+    alert(message);
+}
+
+function exportReport() {
+    const reportType = document.getElementById('report-type').value;
+    const quarter = document.getElementById('quarter-filter').value;
+    
+    window.open(`/api/reports/export?type=${reportType}&quarter=${quarter}&format=pdf`, '_blank');
+}
+
+function updateCompletedServersTable(completedServers) {
+    const tbody = document.getElementById('completed-servers-body');
+    tbody.innerHTML = '';
+    
+    if (!completedServers || completedServers.length === 0) {
+        tbody.innerHTML = '<tr><td colspan="8" class="text-center text-muted">No completed patches</td></tr>';
+        return;
+    }
+    
+    completedServers.forEach(server => {
+        const row = document.createElement('tr');
+        const statusClass = server.status === 'Completed' ? 'badge-success' : 
+                          server.status === 'Failed' ? 'badge-danger' : 'badge-warning';
+        
+        row.innerHTML = `
+            <td>${server.server_name}</td>
+            <td>${server.host_group}</td>
+            <td>${server.patch_date}</td>
+            <td>${server.patch_time}</td>
+            <td>${server.completion_date || 'N/A'}</td>
+            <td>${server.duration || 'N/A'}</td>
+            <td>${server.owner}</td>
+            <td><span class="badge ${statusClass}">${server.status}</span></td>
+        `;
+        tbody.appendChild(row);
+    });
+}
+
+function exportCompletedList() {
+    const quarter = document.getElementById('quarter-filter').value;
+    const hostGroup = document.getElementById('host-group-filter').value;
+    
+    window.open(`/api/reports/export_completed?quarter=${quarter}&host_group=${hostGroup}&format=csv`, '_blank');
+}
+
+function filterCompleted() {
+    // Toggle additional filter controls
+    alert('Advanced filtering coming soon! Use the main filters above for now.');
+}
+
+function generateTextReport() {
+    const reportType = document.getElementById('text-report-type').value;
+    const quarter = document.getElementById('text-report-quarter').value;
+    const hostGroup = document.getElementById('text-report-hostgroup').value;
+    const status = document.getElementById('text-report-status').value;
+    
+    const outputDiv = document.getElementById('text-report-output');
+    outputDiv.style.display = 'block';
+    outputDiv.innerHTML = 'Generating CSV report...';
+    
+    fetch(`/api/reports/text?type=${reportType}&quarter=${quarter}&host_group=${hostGroup}&status=${status}`)
+        .then(response => response.text())
+        .then(data => {
+            // Format CSV for display with proper styling
+            const lines = data.split('\n');
+            let formattedOutput = '<div class="csv-report-container" style="color: #000000; background-color: #ffffff;">';
+            
+            let isInDataSection = false;
+            let isHeaderRow = false;
+            let sectionTitle = '';
+            
+            lines.forEach((line, index) => {
+                if (line.trim()) {
+                    const cells = line.split(',');
+                    
+                    // Check if this is a section header (single cell, descriptive text)
+                    if (cells.length === 1 && !line.includes('Generated') && !line.includes('Quarter') && !line.includes('Total')) {
+                        // This is a section title
+                        formattedOutput += `<h5 style="margin: 20px 0 10px 0;">${cells[0].replace(/"/g, '')}</h5>`;
+                        isInDataSection = false;
+                        isHeaderRow = false;
+                    }
+                    // Check if this is metadata (Generated, Quarter, etc.)
+                    else if (line.includes('Generated') || line.includes('Quarter') || line.includes('Total') && cells.length <= 2) {
+                        formattedOutput += `<div style="margin: 5px 0;"><strong>${cells[0].replace(/"/g, '')}:</strong> ${cells[1] ? cells[1].replace(/"/g, '') : ''}</div>`;
+                    }
+                    // Check if this is a table header row (contains column names)
+                    else if (cells.some(cell => cell.toLowerCase().includes('server') || cell.toLowerCase().includes('status') || cell.toLowerCase().includes('host') || cell.toLowerCase().includes('owner') || cell.toLowerCase().includes('count'))) {
+                        // Start a new table for data - use exact same classes as Completed Patches table
+                        if (isInDataSection) {
+                            formattedOutput += '</tbody></table></div>';
+                        }
+                        formattedOutput += '<div class="table-container"><table class="table table-striped table-sm">';
+                        formattedOutput += '<thead class="thead-dark"><tr>';
+                        cells.forEach(cell => {
+                            formattedOutput += `<th>${cell.replace(/"/g, '')}</th>`;
+                        });
+                        formattedOutput += '</tr></thead><tbody>';
+                        isInDataSection = true;
+                        isHeaderRow = true;
+                    }
+                    // This is data row
+                    else if (isInDataSection && cells.length > 1) {
+                        formattedOutput += '<tr>';
+                        cells.forEach((cell, cellIndex) => {
+                            const cleanCell = cell.replace(/"/g, '');
+                            formattedOutput += `<td>${cleanCell}</td>`;
+                        });
+                        formattedOutput += '</tr>';
+                    }
+                }
+            });
+            
+            if (isInDataSection) {
+                formattedOutput += '</tbody></table></div>';
+            }
+            formattedOutput += '</div>';
+            
+            outputDiv.innerHTML = formattedOutput;
+            
+            // Apply status-specific coloring
+            applyStatusColoring();
+        })
+        .catch(error => {
+            outputDiv.innerHTML = 'Error generating CSV report: ' + error;
+        });
+}
+
+function exportTextReport() {
+    const reportType = document.getElementById('text-report-type').value;
+    const quarter = document.getElementById('text-report-quarter').value;
+    const hostGroup = document.getElementById('text-report-hostgroup').value;
+    const status = document.getElementById('text-report-status').value;
+    
+    window.open(`/api/reports/text?type=${reportType}&quarter=${quarter}&host_group=${hostGroup}&status=${status}&format=download`, '_blank');
+}
+
+function updateStatusSummaryBar(stats) {
+    const total = stats.total_servers;
+    const percentageView = document.getElementById('percentage-view').value;
+    
+    // Calculate percentages
+    const completedPct = total > 0 ? ((stats.completed / total) * 100).toFixed(1) : 0;
+    const scheduledPct = total > 0 ? ((stats.scheduled / total) * 100).toFixed(1) : 0;
+    const approvedPct = total > 0 ? ((stats.approved / total) * 100).toFixed(1) : 0;
+    const pendingPct = total > 0 ? ((stats.pending / total) * 100).toFixed(1) : 0;
+    const failedPct = total > 0 ? ((stats.failed / total) * 100).toFixed(1) : 0;
+    
+    // Update badges based on view preference
+    let totalText = `Total: ${total}`;
+    let completedText, scheduledText, approvedText, pendingText, failedText;
+    
+    if (percentageView === 'numbers') {
+        completedText = `Completed: ${stats.completed}`;
+        scheduledText = `Scheduled: ${stats.scheduled}`;
+        approvedText = `Approved: ${stats.approved}`;
+        pendingText = `Pending: ${stats.pending}`;
+        failedText = `Failed: ${stats.failed}`;
+    } else if (percentageView === 'percentages') {
+        completedText = `Completed: ${completedPct}%`;
+        scheduledText = `Scheduled: ${scheduledPct}%`;
+        approvedText = `Approved: ${approvedPct}%`;
+        pendingText = `Pending: ${pendingPct}%`;
+        failedText = `Failed: ${failedPct}%`;
+    } else { // both
+        completedText = `Completed: ${stats.completed} (${completedPct}%)`;
+        scheduledText = `Scheduled: ${stats.scheduled} (${scheduledPct}%)`;
+        approvedText = `Approved: ${stats.approved} (${approvedPct}%)`;
+        pendingText = `Pending: ${stats.pending} (${pendingPct}%)`;
+        failedText = `Failed: ${stats.failed} (${failedPct}%)`;
+    }
+    
+    // Update DOM elements
+    document.getElementById('total-count').textContent = totalText;
+    document.getElementById('completed-count').textContent = completedText;
+    document.getElementById('scheduled-count').textContent = scheduledText;
+    document.getElementById('approved-count').textContent = approvedText;
+    document.getElementById('pending-count').textContent = pendingText;
+    document.getElementById('failed-count').textContent = failedText;
+    
+    // Add click handlers for filtering
+    addStatusClickHandlers();
+}
+
+function updatePercentageView() {
+    // Reload data to update the percentage view
+    loadReport();
+}
+
+function addStatusClickHandlers() {
+    // Add click handlers to status badges for filtering
+    document.getElementById('completed-count').onclick = () => filterByStatus('completed');
+    document.getElementById('scheduled-count').onclick = () => filterByStatus('scheduled');
+    document.getElementById('approved-count').onclick = () => filterByStatus('approved');
+    document.getElementById('pending-count').onclick = () => filterByStatus('pending');
+    document.getElementById('failed-count').onclick = () => filterByStatus('failed');
+    document.getElementById('total-count').onclick = () => filterByStatus('all');
+}
+
+function filterByStatus(status) {
+    document.getElementById('status-filter').value = status;
+    loadReport();
+}
+
+function applyStatusColoring() {
+    // Only add badges to status columns like in Completed Patches table
+    const dataCells = document.querySelectorAll('td');
+    
+    dataCells.forEach(cell => {
+        const text = cell.textContent.trim().toLowerCase();
+        
+        // Only add badges for status values
+        if (text === 'completed') {
+            cell.innerHTML = '<span class="badge badge-success">Completed</span>';
+        } else if (text === 'failed') {
+            cell.innerHTML = '<span class="badge badge-danger">Failed</span>';
+        } else if (text === 'approved' || text === 'auto-approved') {
+            cell.innerHTML = '<span class="badge badge-success">Approved</span>';
+        } else if (text === 'pending') {
+            cell.innerHTML = '<span class="badge badge-warning">Pending</span>';
+        } else if (text === 'scheduled') {
+            cell.innerHTML = '<span class="badge badge-info">Scheduled</span>';
+        }
+    });
+}
+</script>
+{% endblock %}

@@ -1,0 +1,213 @@
+{% extends "base.html" %}
+
+{% block title %}Dashboard - Patching Portal{% endblock %}
+
+{% block extra_head %}
+<style>
+    .status-badge {
+        display: inline-block;
+        padding: 3px 8px;
+        border-radius: 4px;
+        font-size: 0.8em;
+        font-weight: bold;
+        text-align: center;
+    }
+    .status-pending {
+        background-color: #ffeeba;
+        color: #856404;
+    }
+    .status-scheduled {
+        background-color: #bee5eb;
+        color: #0c5460;
+    }
+    .status-completed {
+        background-color: #c3e6cb;
+        color: #155724;
+    }
+    .status-failed {
+        background-color: #f5c6cb;
+        color: #721c24;
+    }
+    .status-approved {
+        background-color: #c3e6cb;
+        color: #155724;
+    }
+    .quarter-info {
+        margin-bottom: 20px;
+        padding: 15px;
+        background-color: #e9ecef;
+        border-radius: 4px;
+    }
+</style>
+{% endblock %}
+
+{% block content %}
+<div class="row">
+    <div class="col-md-8">
+        <div class="quarter-info">
+            <h3>Current Quarter: {{ quarter_name }}</h3>
+            <p>Months covered: 
+                {% if current_quarter == '1' %}
+                    November to January
+                {% elif current_quarter == '2' %}
+                    February to April
+                {% elif current_quarter == '3' %}
+                    May to July
+                {% elif current_quarter == '4' %}
+                    August to October
+                {% endif %}
+            </p>
+        </div>
+    </div>
+    <div class="col-md-4">
+        <div class="card">
+            <div class="card-header">
+                <h4>Welcome, {{ user_name }}</h4>
+            </div>
+            <div class="card-body">
+                <p><strong>Role:</strong> 
+                    {% if user_role == 'admin' %}
+                        <span class="badge badge-danger">Administrator</span>
+                    {% elif user_role == 'user' %}
+                        <span class="badge badge-primary">User</span>
+                    {% elif user_role == 'readonly' %}
+                        <span class="badge badge-secondary">Read Only</span>
+                    {% endif %}
+                </p>
+                {% if user_role == 'admin' %}
+                    <a href="{{ url_for('admin_panel') }}" class="btn btn-warning btn-sm">Admin Panel</a>
+                {% endif %}
+            </div>
+        </div>
+    </div>
+</div>
+
+{% if user_role == 'admin' %}
+<h2>All Servers <span class="badge badge-warning">Admin View</span></h2>
+{% else %}
+<h2>Your Servers</h2>
+{% endif %}
+
+{% if servers %}
+    <div class="table-responsive">
+        <table class="table table-striped table-bordered">
+            <thead class="thead-dark">
+                <tr>
+                    <th>Server Name</th>
+                    <th>Timezone</th>
+                    <th>{{ quarter_name }} Schedule</th>
+                    <th>Approval Status</th>
+                    <th>Status</th>
+                    <th>Primary Owner</th>
+                    <th>Secondary Owner</th>
+                    <th>Location</th>
+                    <th>Incident</th>
+                    <th>Patcher Email</th>
+                    <th>AI Recommendation</th>
+                    <th>Actions</th>
+                </tr>
+            </thead>
+            <tbody>
+                {% for server in servers %}
+                <tr>
+                    <td>{{ server['Server Name'] }}</td>
+                    <td>{{ server['Server Timezone'] }}</td>
+                    <td>
+                        {% if server['Q'+ current_quarter|string +' Patch Date'] %}
+                            {{ server['Q'+ current_quarter|string +' Patch Date'] }} {{ server['Q'+ current_quarter|string +' Patch Time'] }}
+                        {% else %}
+                            <em>Not scheduled</em>
+                        {% endif %}
+                    </td>
+                    <td>
+                        {% set approval_status = server['Q'+ current_quarter|string +' Approval Status']|default('Pending') %}
+                        <span class="status-badge status-{{ approval_status|lower }}">
+                            {{ approval_status }}
+                        </span>
+                    </td>
+                    <td>
+                        <span class="status-badge status-{{ server['Current Quarter Patching Status']|lower }}">
+                            {{ server['Current Quarter Patching Status'] }}
+                        </span>
+                    </td>
+                    <td>
+                        <span class="badge badge-primary">{{ server['primary_owner']|default('Not set') }}</span>
+                    </td>
+                    <td>
+                        {% if server['secondary_owner'] %}
+                            <span class="badge badge-secondary">{{ server['secondary_owner'] }}</span>
+                        {% else %}
+                            <em class="text-muted">Not set</em>
+                        {% endif %}
+                    </td>
+                    <td>{{ server['location']|default('') }}</td>
+                    <td>{{ server['incident_ticket']|default('Not set') }}</td>
+                    <td>{{ server['patcher_email']|default('Not set') }}</td>
+                    <td>
+                        {% if not server['Q'+ current_quarter|string +' Patch Date'] %}
+                            <span class="badge badge-info">Available</span>
+                        {% else %}
+                            <span class="badge badge-secondary">Scheduled</span>
+                        {% endif %}
+                    </td>
+                    <td>
+                        <a href="{{ url_for('server_detail', server_name=server['Server Name']) }}" class="btn btn-primary btn-sm">Manage</a>
+                    </td>
+                </tr>
+                {% endfor %}
+            </tbody>
+        </table>
+    </div>
+{% else %}
+    <div class="alert alert-info">No servers found for your account.</div>
+{% endif %}
+
+<div class="card mt-4">
+    <div class="card-header">
+        <h3>Instructions</h3>
+    </div>
+    <div class="card-body">
+        <ul>
+            <li>Click "Manage" to schedule or modify patching times for each server</li>
+            <li>Default patching day is Thursday, but you can choose any available date</li>
+            <li>Changes are locked during freeze period (Thursday to Tuesday)</li>
+            <li>You'll receive email notifications before and after patching</li>
+            <li>All times should be specified in the server's local timezone</li>
+        </ul>
+    </div>
+</div>
+
+<div class="card mt-4">
+    <div class="card-header">
+        <h3>Upcoming Quarters</h3>
+    </div>
+    <div class="card-body">
+        <table class="table table-striped">
+            <thead>
+                <tr>
+                    <th>Quarter</th>
+                    <th>Months</th>
+                </tr>
+            </thead>
+            <tbody>
+                {% for quarter_id, quarter_info in quarters.items() %}
+                <tr {% if quarter_id == current_quarter %}class="table-active"{% endif %}>
+                    <td>{{ quarter_info.name }}</td>
+                    <td>
+                        {% if quarter_id == '1' %}
+                            November to January
+                        {% elif quarter_id == '2' %}
+                            February to April
+                        {% elif quarter_id == '3' %}
+                            May to July
+                        {% elif quarter_id == '4' %}
+                            August to October
+                        {% endif %}
+                    </td>
+                </tr>
+                {% endfor %}
+            </tbody>
+        </table>
+    </div>
+</div>
+{% endblock %}

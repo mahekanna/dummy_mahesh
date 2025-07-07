@@ -1,0 +1,118 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <title>Patching Completion Notice</title>
+    <style>
+        body {{
+            font-family: Arial, sans-serif;
+            line-height: 1.6;
+            color: #333;
+            max-width: 800px;
+            margin: 0 auto;
+            padding: 20px;
+        }}
+        h1, h2, h3 {{
+            color: #0056b3;
+        }}
+        table {{
+            border-collapse: collapse;
+            width: 100%;
+            margin: 20px 0;
+        }}
+        th, td {{
+            border: 1px solid #ddd;
+            padding: 8px;
+            text-align: left;
+        }}
+        th {{
+            background-color: #f2f2f2;
+            font-weight: bold;
+        }}
+        .success {{
+            color: #28a745;
+            font-weight: bold;
+        }}
+        .warning {{
+            color: #ffc107;
+            font-weight: bold;
+        }}
+        .danger {{
+            color: #dc3545;
+            font-weight: bold;
+        }}
+        .highlight {{
+            background-color: #ffffd0;
+            padding: 2px 5px;
+        }}
+        .banner {{
+            padding: 10px;
+            border-radius: 5px;
+            margin-bottom: 20px;
+            text-align: center;
+            font-weight: bold;
+        }}
+        .banner-success {{
+            background-color: #d4edda;
+            color: #155724;
+        }}
+        .banner-warning {{
+            background-color: #fff3cd;
+            color: #856404;
+        }}
+        .footer {{
+            margin-top: 40px;
+            padding-top: 10px;
+            border-top: 1px solid #eee;
+            font-size: 0.9em;
+            color: #666;
+        }}
+    </style>
+</head>
+<body>
+    <div class="banner {banner_class}">
+        Patching {status}: {server_name}
+    </div>
+    
+    <h2>Patching Completion Notice</h2>
+    
+    <p>Dear Server Owner,</p>
+    
+    <p>The patching process for server <strong>{server_name}</strong> has been <span class="{status_class}">{status}</span>.</p>
+    
+    <h3>Server Details</h3>
+    <ul>
+        <li><strong>Server Name:</strong> {server_name}</li>
+        <li><strong>Completion Time:</strong> {completion_time}</li>
+        <li><strong>Location:</strong> {location}</li>
+        <li><strong>Status:</strong> <span class="{status_class}">{status}</span></li>
+    </ul>
+    
+    <h3>Post-Patch Validation Results</h3>
+    {validation_summary}
+    
+    <h3>Next Steps</h3>
+    <ul>
+        <li>Verify your applications are functioning correctly</li>
+        <li>Run any application-specific tests as needed</li>
+        <li>Monitor system performance for the next 24 hours</li>
+        <li>Report any issues to the Infrastructure Team</li>
+    </ul>
+    
+    <h3>Support Information</h3>
+    <p>If you experience any issues with your server post-patching:</p>
+    <ul>
+        <li>Email: infrastructure@company.com</li>
+        <li>Phone: +1-xxx-xxx-xxxx</li>
+        <li>Ticket System: https://helpdesk.company.com</li>
+    </ul>
+    
+    <p>Thank you for your cooperation during the patching process.</p>
+    
+    <p>Best regards,<br>
+    Infrastructure Patching Team</p>
+    
+    <div class="footer">
+        <p><small>This is an automated message from the patching management system.</small></p>
+    </div>
+</body>
+</html>

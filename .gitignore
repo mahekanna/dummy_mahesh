@@ -1,0 +1,116 @@
+# Python
+__pycache__/
+*.py[cod]
+*$py.class
+*.so
+.Python
+build/
+develop-eggs/
+dist/
+downloads/
+eggs/
+.eggs/
+lib/
+lib64/
+parts/
+sdist/
+var/
+wheels/
+pip-wheel-metadata/
+share/python-wheels/
+*.egg-info/
+.installed.cfg
+*.egg
+MANIFEST
+
+# Virtual Environments
+venv/
+env/
+ENV/
+env.bak/
+venv.bak/
+
+# Runtime Files
+*.pid
+*.log
+*.db-journal
+
+# Development Files
+debug_*.html
+test_*.py
+sample_*.csv
+*_test.py
+test_*.csv
+
+# Temporary Files
+*.tmp
+*.temp
+*.bak
+*.backup
+*~
+
+# OS Files
+.DS_Store
+Thumbs.db
+.Trash-*
+
+# IDE Files
+.vscode/
+.idea/
+*.swp
+*.swo
+*~
+
+# Configuration (sensitive)
+config/local_settings.py
+config/production.py
+config/production_*
+.env
+.env.*
+*.env
+secrets.json
+credentials.json
+auth_config.json
+production_config.json
+
+# Logs
+logs/*.log
+logs/*.json
+logs/*.txt
+!logs/.gitkeep
+
+# Database
+*.db-shm
+*.db-wal
+
+# Backup Files
+data/*.backup*
+config/*.backup*
+
+# Reports and Exports
+reports/*.pdf
+reports/*.xlsx
+reports/*.csv
+exports/
+
+# Documentation (temporary)
+*_TEMP.md
+*_DRAFT.md
+*_FIXES.md
+*_SUMMARY.md
+IMPLEMENTATION_*.md
+DEVELOPMENT_*.md
+
+# SSH Keys
+.ssh/id_*
+.ssh/known_hosts
+
+# Certificates
+*.pem
+*.key
+*.crt
+*.csr
+
+# Cache
+.cache/
+*.cache

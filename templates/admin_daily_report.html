@@ -1,0 +1,177 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <meta charset="UTF-8">
+    <title>Daily Patching Report - {date}</title>
+    <style>
+        body {{
+            font-family: Arial, sans-serif;
+            margin: 0;
+            padding: 20px;
+            background-color: #f8f9fa;
+        }}
+        .container {{
+            max-width: 800px;
+            margin: 0 auto;
+            background-color: white;
+            padding: 30px;
+            border-radius: 8px;
+            box-shadow: 0 2px 4px rgba(0,0,0,0.1);
+        }}
+        .header {{
+            background-color: #007bff;
+            color: white;
+            padding: 20px;
+            border-radius: 8px;
+            margin-bottom: 20px;
+            text-align: center;
+        }}
+        .stats-grid {{
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(150px, 1fr));
+            gap: 15px;
+            margin-bottom: 30px;
+        }}
+        .stat-card {{
+            background-color: #f8f9fa;
+            padding: 15px;
+            border-radius: 8px;
+            text-align: center;
+            border-left: 4px solid #007bff;
+        }}
+        .stat-number {{
+            font-size: 2em;
+            font-weight: bold;
+            color: #007bff;
+        }}
+        .stat-label {{
+            color: #6c757d;
+            font-size: 0.9em;
+        }}
+        .section {{
+            margin-bottom: 30px;
+        }}
+        .section-title {{
+            color: #495057;
+            border-bottom: 2px solid #007bff;
+            padding-bottom: 10px;
+            margin-bottom: 15px;
+        }}
+        .table {{
+            width: 100%;
+            border-collapse: collapse;
+            margin-bottom: 20px;
+        }}
+        .table th, .table td {{
+            padding: 12px;
+            text-align: left;
+            border-bottom: 1px solid #dee2e6;
+        }}
+        .table th {{
+            background-color: #f8f9fa;
+            font-weight: bold;
+            color: #495057;
+        }}
+        .table tr:hover {{
+            background-color: #f8f9fa;
+        }}
+        .alert {{
+            padding: 15px;
+            border-radius: 8px;
+            margin-bottom: 15px;
+        }}
+        .alert-warning {{
+            background-color: #fff3cd;
+            border-left: 4px solid #ffc107;
+            color: #856404;
+        }}
+        .alert-info {{
+            background-color: #d1ecf1;
+            border-left: 4px solid #17a2b8;
+            color: #0c5460;
+        }}
+        .badge {{
+            display: inline-block;
+            padding: 4px 8px;
+            border-radius: 4px;
+            font-size: 0.8em;
+            font-weight: bold;
+        }}
+        .badge-success {{ background-color: #28a745; color: white; }}
+        .badge-warning {{ background-color: #ffc107; color: #212529; }}
+        .badge-danger {{ background-color: #dc3545; color: white; }}
+        .footer {{
+            margin-top: 30px;
+            padding-top: 20px;
+            border-top: 1px solid #dee2e6;
+            color: #6c757d;
+            font-size: 0.9em;
+            text-align: center;
+        }}
+    </style>
+</head>
+<body>
+    <div class="container">
+        <div class="header">
+            <h1>📊 Daily Patching Report</h1>
+            <p>Date: {date} | Quarter: {quarter}</p>
+        </div>
+
+        <div class="section">
+            <h2 class="section-title">System Overview</h2>
+            <div class="stats-grid">
+                <div class="stat-card">
+                    <div class="stat-number">{stats[total_servers]}</div>
+                    <div class="stat-label">Total Servers</div>
+                </div>
+                <div class="stat-card">
+                    <div class="stat-number" style="color: #28a745;">{stats[approved]}</div>
+                    <div class="stat-label">Approved</div>
+                </div>
+                <div class="stat-card">
+                    <div class="stat-number" style="color: #ffc107;">{stats[pending]}</div>
+                    <div class="stat-label">Pending</div>
+                </div>
+                <div class="stat-card">
+                    <div class="stat-number" style="color: #17a2b8;">{stats[scheduled]}</div>
+                    <div class="stat-label">Scheduled</div>
+                </div>
+                <div class="stat-card">
+                    <div class="stat-number" style="color: #28a745;">{stats[completed]}</div>
+                    <div class="stat-label">Completed</div>
+                </div>
+                <div class="stat-card">
+                    <div class="stat-number" style="color: #dc3545;">{stats[failed]}</div>
+                    <div class="stat-label">Failed</div>
+                </div>
+            </div>
+        </div>
+
+        <div class="section">
+            <h2 class="section-title">🔔 Upcoming Patches (Next 7 Days)</h2>
+            {upcoming_patches_section}
+        </div>
+
+        <div class="section">
+            <h2 class="section-title">⚠️ Overdue Approvals</h2>
+            {overdue_approvals_section}
+        </div>
+
+        <div class="section">
+            <h2 class="section-title">📈 Progress Summary</h2>
+            <div style="background-color: #f8f9fa; padding: 20px; border-radius: 8px;">
+                <p><strong>Approval Progress:</strong> {stats[approved]} of {stats[total_servers]} servers approved ({approval_percentage:.1f}%)</p>
+                <p><strong>Scheduling Status:</strong> {stats[scheduled]} servers scheduled for patching</p>
+                <p><strong>Completion Rate:</strong> {stats[completed]} patches completed, {stats[failed]} failed</p>
+                {pending_action_text}
+            </div>
+        </div>
+
+        <div class="footer">
+            <p>This is an automated report generated by the Linux Patching Automation System.</p>
+            <p>Report generated at: {generation_time}</p>
+            <p>🤖 Generated with <a href="https://claude.ai/code">Claude Code</a></p>
+        </div>
+    </div>
+</body>
+</html>

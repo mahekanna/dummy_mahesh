@@ -1,0 +1,454 @@
+{% extends "base.html" %}
+
+{% block title %}Advanced Admin Panel - Patching Portal{% endblock %}
+
+{% block extra_head %}
+<style>
+    .admin-card {
+        margin-bottom: 20px;
+    }
+    .config-section {
+        border: 1px solid #ddd;
+        border-radius: 5px;
+        padding: 15px;
+        margin-bottom: 15px;
+    }
+    .status-indicator {
+        display: inline-block;
+        width: 12px;
+        height: 12px;
+        border-radius: 50%;
+        margin-right: 8px;
+    }
+    .status-success { background-color: #28a745; }
+    .status-warning { background-color: #ffc107; }
+    .status-error { background-color: #dc3545; }
+    .report-section {
+        background-color: #f8f9fa;
+        padding: 15px;
+        border-radius: 5px;
+        margin-bottom: 15px;
+    }
+</style>
+{% endblock %}
+
+{% block content %}
+<div class="row">
+    <div class="col-md-12">
+        <h2>🛠️ Advanced Admin Panel <span class="badge badge-danger">Administrator Access</span></h2>
+        <p class="text-muted">Comprehensive system administration and configuration management</p>
+    </div>
+</div>
+
+<!-- System Status Overview -->
+<div class="row">
+    <div class="col-md-12">
+        <div class="card admin-card">
+            <div class="card-header">
+                <h4>📊 System Status Overview</h4>
+            </div>
+            <div class="card-body">
+                <div class="row">
+                    <div class="col-md-3">
+                        <div class="text-center">
+                            <h5>{{ stats.total_servers }}</h5>
+                            <small class="text-muted">Total Servers</small>
+                        </div>
+                    </div>
+                    <div class="col-md-3">
+                        <div class="text-center">
+                            <h5 class="text-success">{{ stats.approved }}</h5>
+                            <small class="text-muted">Approved</small>
+                        </div>
+                    </div>
+                    <div class="col-md-3">
+                        <div class="text-center">
+                            <h5 class="text-warning">{{ stats.pending }}</h5>
+                            <small class="text-muted">Pending</small>
+                        </div>
+                    </div>
+                    <div class="col-md-3">
+                        <div class="text-center">
+                            <h5 class="text-info">{{ stats.scheduled }}</h5>
+                            <small class="text-muted">Scheduled</small>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- Admin Configuration -->
+<div class="row">
+    <div class="col-md-6">
+        <div class="card admin-card">
+            <div class="card-header">
+                <h4>⚙️ Admin Configuration</h4>
+            </div>
+            <div class="card-body">
+                <form method="POST" action="{{ url_for('update_admin_config') }}">
+                    <div class="config-section">
+                        <h6>📧 Email Settings</h6>
+                        <div class="form-group">
+                            <label for="admin_email">Primary Admin Email:</label>
+                            <input type="email" id="admin_email" name="admin_email" class="form-control"
+                                value="{{ admin_config.admin_settings.admin_email }}" required>
+                        </div>
+                        <div class="form-group">
+                            <label for="backup_admin_email">Backup Admin Email:</label>
+                            <input type="email" id="backup_admin_email" name="backup_admin_email" class="form-control"
+                                value="{{ admin_config.admin_settings.backup_admin_email|default('') }}">
+                        </div>
+                    </div>
+                    
+                    <div class="config-section">
+                        <h6>📋 Report Settings</h6>
+                        <div class="form-check">
+                            <input class="form-check-input" type="checkbox" id="send_daily_reports" name="send_daily_reports"
+                                {% if admin_config.admin_settings.notification_settings.send_daily_reports %}checked{% endif %}>
+                            <label class="form-check-label" for="send_daily_reports">Send Daily Reports</label>
+                        </div>
+                        <div class="form-check">
+                            <input class="form-check-input" type="checkbox" id="send_weekly_reports" name="send_weekly_reports"
+                                {% if admin_config.admin_settings.notification_settings.send_weekly_reports %}checked{% endif %}>
+                            <label class="form-check-label" for="send_weekly_reports">Send Weekly Reports</label>
+                        </div>
+                        <div class="form-check">
+                            <input class="form-check-input" type="checkbox" id="send_error_alerts" name="send_error_alerts"
+                                {% if admin_config.admin_settings.notification_settings.send_error_alerts %}checked{% endif %}>
+                            <label class="form-check-label" for="send_error_alerts">Send Error Alerts</label>
+                        </div>
+                    </div>
+                    
+                    <button type="submit" class="btn btn-primary">💾 Save Configuration</button>
+                </form>
+            </div>
+        </div>
+    </div>
+    
+    <div class="col-md-6">
+        <div class="card admin-card">
+            <div class="card-header">
+                <h4>👥 LDAP Configuration</h4>
+            </div>
+            <div class="card-body">
+                <form method="POST" action="{{ url_for('update_ldap_config') }}">
+                    <div class="form-group">
+                        <div class="form-check">
+                            <input class="form-check-input" type="checkbox" id="ldap_enabled" name="ldap_enabled"
+                                {% if ldap_config.enabled %}checked{% endif %}>
+                            <label class="form-check-label" for="ldap_enabled">Enable LDAP Authentication</label>
+                        </div>
+                    </div>
+                    
+                    <div id="ldap-settings" style="{% if not ldap_config.enabled %}display: none;{% endif %}">
+                        <div class="form-group">
+                            <label for="ldap_server">LDAP Server:</label>
+                            <input type="text" id="ldap_server" name="ldap_server" class="form-control"
+                                value="{{ ldap_config.server|default('ldap://ldap.company.com:389') }}"
+                                placeholder="ldap://ldap.company.com:389">
+                        </div>
+                        <div class="form-group">
+                            <label for="ldap_base_dn">Base DN:</label>
+                            <input type="text" id="ldap_base_dn" name="ldap_base_dn" class="form-control"
+                                value="{{ ldap_config.base_dn|default('dc=company,dc=com') }}"
+                                placeholder="dc=company,dc=com">
+                        </div>
+                        <div class="form-group">
+                            <label for="ldap_bind_dn">Bind DN:</label>
+                            <input type="text" id="ldap_bind_dn" name="ldap_bind_dn" class="form-control"
+                                value="{{ ldap_config.bind_dn|default('') }}"
+                                placeholder="cn=service_account,ou=service,dc=company,dc=com">
+                        </div>
+                        <div class="form-group">
+                            <label for="ldap_bind_password">Bind Password:</label>
+                            <input type="password" id="ldap_bind_password" name="ldap_bind_password" class="form-control"
+                                placeholder="Enter LDAP bind password">
+                        </div>
+                    </div>
+                    
+                    <button type="submit" class="btn btn-primary">💾 Save LDAP Config</button>
+                    <button type="button" class="btn btn-secondary" id="test-ldap">🔍 Test Connection</button>
+                </form>
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- Server Groups Configuration -->
+<div class="row">
+    <div class="col-md-12">
+        <div class="card admin-card">
+            <div class="card-header">
+                <h4>🏗️ Server Groups Configuration</h4>
+            </div>
+            <div class="card-body">
+                <div class="row">
+                    {% for group_name, group_config in server_groups.server_groups.items() %}
+                    <div class="col-md-6">
+                        <div class="config-section">
+                            <h6>{{ group_config.name }}</h6>
+                            <p class="text-muted">{{ group_config.description }}</p>
+                            <small>
+                                <strong>Priority:</strong> {{ group_config.priority }} |
+                                <strong>Max Concurrent:</strong> {{ group_config.max_concurrent }} |
+                                <strong>Window:</strong> {{ group_config.scheduling_window }}
+                            </small>
+                            <div class="mt-2">
+                                <button class="btn btn-sm btn-outline-primary edit-group" data-group="{{ group_name }}">
+                                    ✏️ Edit
+                                </button>
+                            </div>
+                        </div>
+                    </div>
+                    {% endfor %}
+                </div>
+                <button class="btn btn-success" data-toggle="modal" data-target="#addGroupModal">
+                    ➕ Add New Group
+                </button>
+                <button class="btn btn-info" onclick="syncHostGroups()">
+                    🔄 Sync from CSV
+                </button>
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- System Operations -->
+<div class="row">
+    <div class="col-md-4">
+        <div class="card admin-card">
+            <div class="card-header">
+                <h5>📊 Reports & Analytics</h5>
+            </div>
+            <div class="card-body">
+                <div class="report-section">
+                    <h6>Reports Dashboard</h6>
+                    <a href="{{ url_for('reports_dashboard') }}" class="btn btn-success btn-sm btn-block">
+                        📊 View Reports Dashboard
+                    </a>
+                    <hr>
+                    <h6>Email Reports</h6>
+                    <button class="btn btn-info btn-sm btn-block" onclick="generateReport('daily')">
+                        📅 Send Daily Report
+                    </button>
+                    <button class="btn btn-info btn-sm btn-block" onclick="generateReport('weekly')">
+                        📊 Send Weekly Report
+                    </button>
+                    <button class="btn btn-info btn-sm btn-block" onclick="generateReport('monthly')">
+                        📋 Send Monthly Report
+                    </button>
+                </div>
+            </div>
+        </div>
+    </div>
+    
+    <div class="col-md-4">
+        <div class="card admin-card">
+            <div class="card-header">
+                <h5>🔄 System Maintenance</h5>
+            </div>
+            <div class="card-body">
+                <div class="report-section">
+                    <h6>Database Operations</h6>
+                    <button class="btn btn-warning btn-sm btn-block" onclick="syncDatabase()">
+                        🔄 Sync CSV to Database
+                    </button>
+                    <button class="btn btn-danger btn-sm btn-block" onclick="cleanupData()">
+                        🧹 Cleanup Old Data
+                    </button>
+                    <button class="btn btn-secondary btn-sm btn-block" onclick="backupData()">
+                        💾 Backup Data
+                    </button>
+                </div>
+            </div>
+        </div>
+    </div>
+    
+    <div class="col-md-4">
+        <div class="card admin-card">
+            <div class="card-header">
+                <h5>🤖 AI & Automation</h5>
+            </div>
+            <div class="card-body">
+                <div class="report-section">
+                    <h6>Intelligent Operations</h6>
+                    <button class="btn btn-success btn-sm btn-block" onclick="runIntelligentScheduling()">
+                        🧠 Run Intelligent Scheduling
+                    </button>
+                    <button class="btn btn-primary btn-sm btn-block" onclick="analyzeLoadPatterns()">
+                        📈 Analyze Load Patterns
+                    </button>
+                    <button class="btn btn-info btn-sm btn-block" onclick="generatePredictions()">
+                        🔮 Generate Predictions
+                    </button>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- Add Group Modal -->
+<div class="modal fade" id="addGroupModal" tabindex="-1">
+    <div class="modal-dialog">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h5 class="modal-title">Add New Server Group</h5>
+                <button type="button" class="close" data-dismiss="modal">
+                    <span>&times;</span>
+                </button>
+            </div>
+            <div class="modal-body">
+                <form id="addGroupForm">
+                    <div class="form-group">
+                        <label for="group_name">Group Name:</label>
+                        <input type="text" id="group_name" name="group_name" class="form-control" required>
+                    </div>
+                    <div class="form-group">
+                        <label for="group_display_name">Display Name:</label>
+                        <input type="text" id="group_display_name" name="group_display_name" class="form-control" required>
+                    </div>
+                    <div class="form-group">
+                        <label for="group_description">Description:</label>
+                        <textarea id="group_description" name="group_description" class="form-control" rows="3"></textarea>
+                    </div>
+                    <div class="form-group">
+                        <label for="group_priority">Priority (1-10):</label>
+                        <input type="number" id="group_priority" name="group_priority" class="form-control" min="1" max="10" value="5">
+                    </div>
+                    <div class="form-group">
+                        <label for="max_concurrent">Max Concurrent Patches:</label>
+                        <input type="number" id="max_concurrent" name="max_concurrent" class="form-control" min="1" max="20" value="3">
+                    </div>
+                </form>
+            </div>
+            <div class="modal-footer">
+                <button type="button" class="btn btn-secondary" data-dismiss="modal">Cancel</button>
+                <button type="button" class="btn btn-primary" onclick="addGroup()">Add Group</button>
+            </div>
+        </div>
+    </div>
+</div>
+
+<script>
+// Enable/disable LDAP settings
+document.getElementById('ldap_enabled').addEventListener('change', function() {
+    const ldapSettings = document.getElementById('ldap-settings');
+    ldapSettings.style.display = this.checked ? 'block' : 'none';
+});
+
+// Test LDAP connection
+document.getElementById('test-ldap').addEventListener('click', function() {
+    fetch('/api/test_ldap_connection', {method: 'POST'})
+        .then(response => response.json())
+        .then(data => {
+            alert(data.success ? 'LDAP connection successful!' : 'LDAP connection failed: ' + data.message);
+        })
+        .catch(error => {
+            alert('Error testing LDAP connection: ' + error);
+        });
+});
+
+// Admin operations
+function generateReport(type) {
+    fetch(`/api/admin/generate_report/${type}`, {method: 'POST'})
+        .then(response => response.json())
+        .then(data => {
+            if (data.success) {
+                alert(`${type.charAt(0).toUpperCase() + type.slice(1)} report generated and sent to admin email!`);
+            } else {
+                alert('Failed to generate report: ' + data.message);
+            }
+        });
+}
+
+function syncDatabase() {
+    if (confirm('Are you sure you want to sync CSV data to database?')) {
+        fetch('/api/admin/sync_database', {method: 'POST'})
+            .then(response => response.json())
+            .then(data => {
+                alert(data.success ? 'Database sync completed!' : 'Database sync failed: ' + data.message);
+            });
+    }
+}
+
+function cleanupData() {
+    if (confirm('Are you sure you want to cleanup old data? This action cannot be undone.')) {
+        fetch('/api/admin/cleanup_data', {method: 'POST'})
+            .then(response => response.json())
+            .then(data => {
+                alert(data.success ? 'Data cleanup completed!' : 'Data cleanup failed: ' + data.message);
+            });
+    }
+}
+
+function runIntelligentScheduling() {
+    fetch('/api/admin/intelligent_scheduling', {method: 'POST'})
+        .then(response => response.json())
+        .then(data => {
+            alert(data.success ? 'Intelligent scheduling completed!' : 'Intelligent scheduling failed: ' + data.message);
+        });
+}
+
+function analyzeLoadPatterns() {
+    fetch('/api/admin/analyze_load_patterns', {method: 'POST'})
+        .then(response => response.json())
+        .then(data => {
+            alert(data.success ? 'Load pattern analysis completed!' : 'Load pattern analysis failed: ' + data.message);
+        });
+}
+
+function generatePredictions() {
+    fetch('/api/admin/generate_predictions', {method: 'POST'})
+        .then(response => response.json())
+        .then(data => {
+            alert(data.success ? 'Predictions generated successfully!' : 'Prediction generation failed: ' + data.message);
+        });
+}
+
+function backupData() {
+    if (confirm('Are you sure you want to create a backup of all data?')) {
+        fetch('/api/admin/backup_data', {method: 'POST'})
+            .then(response => response.json())
+            .then(data => {
+                alert(data.success ? 'Data backup completed!' : 'Data backup failed: ' + data.message);
+            });
+    }
+}
+
+function addGroup() {
+    const formData = new FormData(document.getElementById('addGroupForm'));
+    
+    fetch('/api/admin/add_server_group', {
+        method: 'POST',
+        body: formData
+    })
+    .then(response => response.json())
+    .then(data => {
+        if (data.success) {
+            alert('Server group added successfully!');
+            $('#addGroupModal').modal('hide');
+            location.reload();
+        } else {
+            alert('Failed to add server group: ' + data.message);
+        }
+    });
+}
+
+function syncHostGroups() {
+    if (confirm('Sync server groups from CSV data? This will update the configuration based on actual host groups.')) {
+        fetch('/api/admin/sync_host_groups', {method: 'POST'})
+            .then(response => response.json())
+            .then(data => {
+                if (data.success) {
+                    alert('Host groups synced successfully! ' + data.message);
+                    location.reload();
+                } else {
+                    alert('Host group sync failed: ' + data.message);
+                }
+            });
+    }
+}
+</script>
+{% endblock %}

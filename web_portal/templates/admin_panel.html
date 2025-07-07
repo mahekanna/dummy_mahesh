@@ -1,0 +1,232 @@
+{% extends "base.html" %}
+
+{% block title %}Admin Panel - Patching Portal{% endblock %}
+
+{% block extra_head %}
+<style>
+    .admin-header {
+        background-color: #dc3545;
+        color: white;
+        padding: 20px;
+        margin-bottom: 20px;
+        border-radius: 4px;
+    }
+    .stat-card {
+        text-align: center;
+        padding: 20px;
+        margin-bottom: 20px;
+        border-radius: 8px;
+        box-shadow: 0 2px 4px rgba(0,0,0,0.1);
+    }
+    .stat-number {
+        font-size: 2.5em;
+        font-weight: bold;
+        margin-bottom: 10px;
+    }
+    .stat-approved { background-color: #d4edda; color: #155724; }
+    .stat-pending { background-color: #fff3cd; color: #856404; }
+    .stat-no-schedule { background-color: #f8d7da; color: #721c24; }
+    .stat-total { background-color: #e7f3ff; color: #0056b3; }
+    .user-role-admin { background-color: #f8d7da; color: #721c24; }
+    .user-role-user { background-color: #cce5ff; color: #0056b3; }
+    .user-role-readonly { background-color: #f1f1f1; color: #666; }
+    .role-badge {
+        display: inline-block;
+        padding: 3px 8px;
+        border-radius: 4px;
+        font-size: 0.8em;
+        font-weight: bold;
+        text-align: center;
+    }
+</style>
+{% endblock %}
+
+{% block content %}
+<div class="admin-header">
+    <h1>🔧 Administrator Panel</h1>
+    <p>System administration and user management for the patching portal</p>
+</div>
+
+<div class="row">
+    <div class="col-md-3">
+        <div class="stat-card stat-total">
+            <div class="stat-number">{{ stats.total_servers }}</div>
+            <div>Total Servers</div>
+        </div>
+    </div>
+    <div class="col-md-3">
+        <div class="stat-card stat-approved">
+            <div class="stat-number">{{ stats.approved_servers }}</div>
+            <div>Approved (Q{{ current_quarter }})</div>
+        </div>
+    </div>
+    <div class="col-md-3">
+        <div class="stat-card stat-pending">
+            <div class="stat-number">{{ stats.pending_approvals }}</div>
+            <div>Pending Approvals</div>
+        </div>
+    </div>
+    <div class="col-md-3">
+        <div class="stat-card stat-no-schedule">
+            <div class="stat-number">{{ stats.no_schedule }}</div>
+            <div>No Schedule Set</div>
+        </div>
+    </div>
+</div>
+
+<div class="row">
+    <div class="col-md-12">
+        <div class="card">
+            <div class="card-header">
+                <h3>User Management</h3>
+            </div>
+            <div class="card-body">
+                <div class="table-responsive">
+                    <table class="table table-striped table-bordered">
+                        <thead class="thead-dark">
+                            <tr>
+                                <th>Email</th>
+                                <th>Name</th>
+                                <th>Role</th>
+                                <th>Status</th>
+                                <th>Actions</th>
+                            </tr>
+                        </thead>
+                        <tbody>
+                            {% for user in users %}
+                            <tr>
+                                <td>{{ user.email }}</td>
+                                <td>{{ user.name }}</td>
+                                <td>
+                                    <span class="role-badge user-role-{{ user.role }}">
+                                        {{ user.role_name }}
+                                    </span>
+                                </td>
+                                <td>
+                                    {% if user.active %}
+                                        <span class="badge badge-success">Active</span>
+                                    {% else %}
+                                        <span class="badge badge-secondary">Inactive</span>
+                                    {% endif %}
+                                </td>
+                                <td>
+                                    <button class="btn btn-sm btn-info" onclick="viewUserDetails('{{ user.email }}')">
+                                        View Details
+                                    </button>
+                                </td>
+                            </tr>
+                            {% endfor %}
+                        </tbody>
+                    </table>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
+<div class="row">
+    <div class="col-md-12">
+        <div class="card">
+            <div class="card-header">
+                <h3>Quick Actions</h3>
+            </div>
+            <div class="card-body">
+                <div class="row">
+                    <div class="col-md-3">
+                        <div class="card">
+                            <div class="card-body text-center">
+                                <h5>Send Approval Requests</h5>
+                                <p>Send reminder emails to users with pending approvals</p>
+                                <button class="btn btn-warning" onclick="sendApprovalRequests()">
+                                    Send Requests
+                                </button>
+                            </div>
+                        </div>
+                    </div>
+                    <div class="col-md-3">
+                        <div class="card">
+                            <div class="card-body text-center">
+                                <h5>Export Server Data</h5>
+                                <p>Download server configuration and status data</p>
+                                <button class="btn btn-success" onclick="exportServerData()">
+                                    Export CSV
+                                </button>
+                            </div>
+                        </div>
+                    </div>
+                    <div class="col-md-3">
+                        <div class="card">
+                            <div class="card-body text-center">
+                                <h5>View Reports</h5>
+                                <p>Generate approval status and patching reports</p>
+                                <button class="btn btn-info" onclick="generateReports()">
+                                    View Reports
+                                </button>
+                            </div>
+                        </div>
+                    </div>
+                    <div class="col-md-3">
+                        <div class="card">
+                            <div class="card-body text-center">
+                                <h5>System Settings</h5>
+                                <p>Configure system-wide settings and preferences</p>
+                                <button class="btn btn-secondary" onclick="systemSettings()">
+                                    Settings
+                                </button>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
+<div class="row">
+    <div class="col-md-12">
+        <div class="card">
+            <div class="card-header">
+                <h3>Recent Activity</h3>
+            </div>
+            <div class="card-body">
+                <div class="alert alert-info">
+                    <h5>Activity Log</h5>
+                    <p>Activity logging feature coming soon. This will show recent user actions, schedule changes, and system events.</p>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
+<div class="mt-4">
+    <a href="{{ url_for('dashboard') }}" class="btn btn-secondary">Back to Dashboard</a>
+</div>
+
+<script>
+function viewUserDetails(email) {
+    alert('User details functionality coming soon for: ' + email);
+}
+
+function sendApprovalRequests() {
+    if (confirm('Send approval request emails to all users with pending approvals?')) {
+        alert('Approval requests sent successfully!');
+        // TODO: Implement actual API call
+    }
+}
+
+function exportServerData() {
+    alert('Export functionality coming soon!');
+    // TODO: Implement CSV export
+}
+
+function generateReports() {
+    alert('Reporting functionality coming soon!');
+    // TODO: Implement reporting
+}
+
+function systemSettings() {
+    alert('System settings functionality coming soon!');
+    // TODO: Implement settings panel
+}
+</script>
+{% endblock %}

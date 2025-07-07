@@ -1,0 +1,62 @@
+{% extends "base.html" %}
+
+{% block title %}Linux OS Patching Portal{% endblock %}
+
+{% block content %}
+<div class="jumbotron">
+    <h2>Welcome to the Linux OS Patching Portal</h2>
+    <p class="lead">Centralized management for Linux server patching operations.</p>
+    <p>Please login to access your server patching schedule.</p>
+    <p><a href="{{ url_for('login') }}" class="btn btn-primary btn-lg">Login</a></p>
+</div>
+
+<div class="row">
+    <div class="col-md-4">
+        <div class="card mb-4">
+            <div class="card-header">
+                <h3>Schedule Management</h3>
+            </div>
+            <div class="card-body">
+                <p>View and update patching schedules for your servers</p>
+                <ul>
+                    <li>Schedule new patching dates</li>
+                    <li>View historical patching data</li>
+                    <li>Track patching status</li>
+                </ul>
+            </div>
+        </div>
+    </div>
+    
+    <div class="col-md-4">
+        <div class="card mb-4">
+            <div class="card-header">
+                <h3>Server Overview</h3>
+            </div>
+            <div class="card-body">
+                <p>Comprehensive server information and management</p>
+                <ul>
+                    <li>View server details</li>
+                    <li>Monitor patching status</li>
+                    <li>Review patching history</li>
+                </ul>
+            </div>
+        </div>
+    </div>
+    
+    <div class="col-md-4">
+        <div class="card mb-4">
+            <div class="card-header">
+                <h3>Automation Benefits</h3>
+            </div>
+            <div class="card-body">
+                <p>Key features of the patching automation system</p>
+                <ul>
+                    <li>Automated notifications</li>
+                    <li>Pre and post patch validation</li>
+                    <li>Detailed reporting</li>
+                </ul>
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}
