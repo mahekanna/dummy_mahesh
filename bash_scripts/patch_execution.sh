@@ -11,7 +11,7 @@ log_message() {
     echo "$1"
 }
 
-# Function to execute patching
+# Function to execute patching using configured remote script
 execute_patching() {
     log_message "Starting patch execution for $SERVER_NAME"
     
@@ -24,95 +24,64 @@ execute_patching() {
         return 1
     fi
     
-    # Determine OS type
-    OS_TYPE=$(ssh "$SERVER_NAME" "cat /etc/os-release | grep '^ID=' | cut -d'=' -f2 | tr -d '\"'")
-    log_message "Detected OS type: $OS_TYPE"
+    # Get patching script path from Python configuration
+    PATCHING_SCRIPT_PATH=$(python3 -c "
+import sys
+sys.path.insert(0, '$PARENT_DIR')
+from config.settings import Config
+print(Config.PATCHING_SCRIPT_PATH)
+")
     
-    case "$OS_TYPE" in
-        "rhel"|"centos"|"fedora"|"rocky"|"almalinux")
-            patch_rhel_based
-            ;;
-        "ubuntu"|"debian")
-            patch_debian_based
-            ;;
-        "sles"|"opensuse")
-            patch_suse_based
-            ;;
-        *)
-            log_message "ERROR: Unsupported OS type: $OS_TYPE"
+    log_message "Using remote patching script: $PATCHING_SCRIPT_PATH"
+    
+    # Check if script validation is enabled
+    VALIDATE_SCRIPT=$(python3 -c "
+import sys
+sys.path.insert(0, '$PARENT_DIR')
+from config.settings import Config
+print('true' if Config.VALIDATE_PATCHING_SCRIPT else 'false')
+")
+    
+    # Validate script exists and is executable if validation is enabled
+    if [ "$VALIDATE_SCRIPT" = "true" ]; then
+        log_message "Validating remote patching script"
+        
+        if ! ssh "$SERVER_NAME" "test -f '$PATCHING_SCRIPT_PATH'"; then
+            log_message "ERROR: Patching script $PATCHING_SCRIPT_PATH not found on $SERVER_NAME"
             return 1
-            ;;
-    esac
-}
-
-# Function to patch RHEL-based systems
-patch_rhel_based() {
-    log_message "Executing RHEL-based patching"
+        fi
+        
+        if ! ssh "$SERVER_NAME" "test -x '$PATCHING_SCRIPT_PATH'"; then
+            log_message "ERROR: Patching script $PATCHING_SCRIPT_PATH is not executable on $SERVER_NAME"
+            return 1
+        fi
+        
+        log_message "Remote patching script validation passed"
+    fi
     
-    # Update package cache
-    ssh "$SERVER_NAME" "yum clean all && yum makecache" 2>&1 | while read line; do
-        log_message "YUM: $line"
+    # Execute the remote patching script
+    log_message "Executing remote patching script on $SERVER_NAME"
+    
+    # Execute script with server name as argument and stream output
+    ssh "$SERVER_NAME" "sudo $PATCHING_SCRIPT_PATH $SERVER_NAME" 2>&1 | while read line; do
+        log_message "REMOTE: $line"
     done
     
-    # Apply updates
-    ssh "$SERVER_NAME" "yum update -y --exclude=kernel*" 2>&1 | while read line; do
-        log_message "UPDATE: $line"
-    done
+    # Check exit status of the remote script
+    PATCH_EXIT_CODE=${PIPESTATUS[0]}
     
-    # Check for kernel updates separately
-    KERNEL_UPDATES=$(ssh "$SERVER_NAME" "yum list updates | grep kernel | wc -l")
-    if [ "$KERNEL_UPDATES" -gt 0 ]; then
-        log_message "Kernel updates available: $KERNEL_UPDATES"
-        ssh "$SERVER_NAME" "yum update -y kernel*" 2>&1 | while read line; do
-            log_message "KERNEL: $line"
-        done
+    if [ $PATCH_EXIT_CODE -eq 0 ]; then
+        log_message "Remote patching script completed successfully"
+        return 0
+    else
+        log_message "ERROR: Remote patching script failed with exit code $PATCH_EXIT_CODE"
+        return 1
     fi
 }
 
-# Function to patch Debian-based systems
-patch_debian_based() {
-    log_message "Executing Debian-based patching"
-    
-    # Update package cache
-    ssh "$SERVER_NAME" "apt-get update" 2>&1 | while read line; do
-        log_message "APT: $line"
-    done
-    
-    # Apply updates
-    ssh "$SERVER_NAME" "DEBIAN_FRONTEND=noninteractive apt-get upgrade -y" 2>&1 | while read line; do
-        log_message "UPGRADE: $line"
-    done
-    
-    # Apply dist-upgrade for kernel and major updates
-    ssh "$SERVER_NAME" "DEBIAN_FRONTEND=noninteractive apt-get dist-upgrade -y" 2>&1 | while read line; do
-        log_message "DIST-UPGRADE: $line"
-    done
-    
-    # Clean up
-    ssh "$SERVER_NAME" "apt-get autoremove -y && apt-get autoclean" 2>&1 | while read line; do
-        log_message "CLEANUP: $line"
-    done
-}
-
-# Function to patch SUSE-based systems
-patch_suse_based() {
-    log_message "Executing SUSE-based patching"
-    
-    # Refresh repositories
-    ssh "$SERVER_NAME" "zypper refresh" 2>&1 | while read line; do
-        log_message "ZYPPER: $line"
-    done
-    
-    # Apply patches
-    ssh "$SERVER_NAME" "zypper patch -y" 2>&1 | while read line; do
-        log_message "PATCH: $line"
-    done
-    
-    # Apply updates
-    ssh "$SERVER_NAME" "zypper update -y" 2>&1 | while read line; do
-        log_message "UPDATE: $line"
-    done
-}
+# Note: OS-specific patching functions removed
+# The system now uses the configurable remote patching script
+# defined in PATCHING_SCRIPT_PATH configuration setting
 
 # Function to check if reboot is required
 check_reboot_required() {

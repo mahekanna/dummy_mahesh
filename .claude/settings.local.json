@@ -33,7 +33,16 @@
       "Bash(sudo grep -n \"PRECHECK_HOURS_BEFORE\" /opt/linux_patching_automation/config/settings.py)",
       "Bash(sudo grep -n \"authenticate_user\" /opt/linux_patching_automation/web_portal/app.py)",
       "Bash(sudo cp:*)",
-      "Bash(sudo chown:*)"
+      "Bash(sudo chown:*)",
+      "Bash(./setup_dev.sh:*)",
+      "Bash(./db_tools.sh:*)",
+      "Bash(./test_ubuntu_deployment.sh:*)",
+      "Bash(sudo:*)",
+      "Bash(apt list:*)",
+      "Bash(pip3 install:*)",
+      "Bash(mv:*)",
+      "Bash(git remote set-url:*)",
+      "Bash(git add:*)"
     ],
     "deny": []
   }

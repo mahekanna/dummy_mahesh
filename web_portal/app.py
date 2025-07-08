@@ -519,22 +519,34 @@ def generate_csv_export(servers, quarter):
     return output.getvalue()
 
 class User(UserMixin):
-    def __init__(self, email, role=None, name=None, permissions=None):
+    def __init__(self, email, role=None, name=None, permissions=None, username=None, auth_method='local', **kwargs):
         self.id = email
         self.email = email
+        self.username = username or email.split('@')[0] if '@' in email else email
         self.role = role
         self.name = name
         self.permissions = permissions or []
+        self.auth_method = auth_method
+        self.ldap_groups = kwargs.get('ldap_groups', [])
+        self.department = kwargs.get('department', '')
+        self.title = kwargs.get('title', '')
         
     @staticmethod
-    def get(email):
-        user_info = UserManager.get_user_info(email)
+    def get(email_or_username):
+        # Initialize UserManager instance for new methods
+        user_manager = UserManager()
+        user_info = user_manager.get_user_info(email_or_username)
         if user_info:
             return User(
                 email=user_info['email'],
+                username=user_info.get('username', email_or_username),
                 role=user_info['role'],
                 name=user_info['name'],
-                permissions=user_info['permissions']
+                permissions=user_info['permissions'],
+                auth_method=user_info.get('auth_method', 'local'),
+                ldap_groups=user_info.get('ldap_groups', []),
+                department=user_info.get('department', ''),
+                title=user_info.get('title', '')
             )
         return None
     
@@ -549,6 +561,11 @@ class User(UserMixin):
     
     def can_modify_patcher_emails(self):
         return self.has_permission('update_patcher_emails')
+    
+    def get_accessible_servers(self):
+        """Get servers that this user can access"""
+        user_manager = UserManager()
+        return user_manager.get_user_servers(self.email, self.role)
 
 @login_manager.user_loader
 def load_user(user_id):
@@ -563,28 +580,34 @@ def index():
 @app.route('/login', methods=['GET', 'POST'])
 def login():
     if request.method == 'POST':
-        email = request.form['email']
+        username_or_email = request.form['email']  # Can be username or email
         password = request.form['password']
         
-        # Use UserManager for authentication
-        try:
-            # Try the new method name first
-            user_data = UserManager.authenticate_user(email, password)
-        except AttributeError:
-            # Fall back to old method name if new one doesn't exist
-            user_data = UserManager.authenticate(email, password)
+        # Use UserManager instance for authentication (LDAP + fallback)
+        user_manager = UserManager()
+        user_data = user_manager.authenticate_user(username_or_email, password)
         
         if user_data:
             user = User(
                 email=user_data['email'],
+                username=user_data.get('username', username_or_email),
                 role=user_data['role'],
                 name=user_data['name'],
-                permissions=user_data['permissions']
+                permissions=user_data['permissions'],
+                auth_method=user_data.get('auth_method', 'local'),
+                ldap_groups=user_data.get('ldap_groups', []),
+                department=user_data.get('department', ''),
+                title=user_data.get('title', '')
             )
             login_user(user)
+            
+            # Log successful authentication
+            auth_method = user_data.get('auth_method', 'local')
+            app.logger.info(f"User {user_data['name']} ({username_or_email}) logged in via {auth_method}")
+            
             return redirect(url_for('dashboard'))
         else:
-            flash('Invalid email or password')
+            flash('Invalid username/email or password')
     
     return render_template('login.html')
 
@@ -598,11 +621,38 @@ def logout():
 @login_required
 def dashboard():
     try:
-        # Admins can see all servers, regular users only their own
-        if current_user.is_admin():
-            user_servers = csv_handler.read_servers()
-        else:
-            user_servers = csv_handler.get_servers_by_owner(current_user.email)
+        # Get servers based on user permissions and ownership
+        user_servers = current_user.get_accessible_servers()
+        
+        # Convert normalized field names back to template-expected format
+        template_servers = []
+        for server in user_servers:
+            template_server = {
+                'Server Name': server.get('server_name', ''),
+                'Server Timezone': server.get('server_timezone', ''),
+                'Q1 Patch Date': server.get('q1_patch_date', ''),
+                'Q1 Patch Time': server.get('q1_patch_time', ''),
+                'Q2 Patch Date': server.get('q2_patch_date', ''),
+                'Q2 Patch Time': server.get('q2_patch_time', ''),
+                'Q3 Patch Date': server.get('q3_patch_date', ''),
+                'Q3 Patch Time': server.get('q3_patch_time', ''),
+                'Q4 Patch Date': server.get('q4_patch_date', ''),
+                'Q4 Patch Time': server.get('q4_patch_time', ''),
+                'Q1 Approval Status': server.get('q1_approval_status', 'Pending'),
+                'Q2 Approval Status': server.get('q2_approval_status', 'Pending'),
+                'Q3 Approval Status': server.get('q3_approval_status', 'Pending'),
+                'Q4 Approval Status': server.get('q4_approval_status', 'Pending'),
+                'Current Quarter Patching Status': server.get('current_quarter_status', 'Pending'),
+                'primary_owner': server.get('primary_owner', ''),
+                'secondary_owner': server.get('secondary_owner', ''),
+                'location': server.get('location', ''),
+                'incident_ticket': server.get('incident_ticket', ''),
+                'patcher_email': server.get('patcher_email', ''),
+                'host_group': server.get('host_group', ''),
+                'operating_system': server.get('operating_system', ''),
+                'environment': server.get('environment', '')
+            }
+            template_servers.append(template_server)
         
         # Get current quarter
         current_quarter = Config.get_current_quarter()
@@ -610,12 +660,15 @@ def dashboard():
         
         return render_template(
             'dashboard.html', 
-            servers=user_servers, 
+            servers=template_servers, 
             current_quarter=current_quarter,
             quarter_name=quarter_name,
             quarters=Config.QUARTERS,
             user_role=current_user.role,
-            user_name=current_user.name
+            user_name=current_user.name,
+            user_auth_method=getattr(current_user, 'auth_method', 'local'),
+            user_department=getattr(current_user, 'department', ''),
+            user_title=getattr(current_user, 'title', '')
         )
     except Exception as e:
         flash(f'Error loading dashboard: {e}')
@@ -625,7 +678,10 @@ def dashboard():
                              quarter_name=Config.QUARTERS.get(Config.get_current_quarter(), {}).get('name', 'Current Quarter'),
                              quarters=Config.QUARTERS,
                              user_role=getattr(current_user, 'role', 'user'),
-                             user_name=getattr(current_user, 'name', 'User'))
+                             user_name=getattr(current_user, 'name', 'User'),
+                             user_auth_method='local',
+                             user_department='',
+                             user_title='')
 
 @app.route('/server/<server_name>')
 @login_required
@@ -635,7 +691,8 @@ def server_detail(server_name):
         server = None
         
         for s in servers:
-            if s['Server Name'] == server_name:
+            # Check normalized field name 'server_name'
+            if s.get('server_name') == server_name:
                 # Admins can access all servers, regular users only their own
                 if (current_user.is_admin() or 
                     s.get('primary_owner') == current_user.email or 
@@ -651,9 +708,36 @@ def server_detail(server_name):
         current_quarter = Config.get_current_quarter()
         quarter_name = Config.QUARTERS.get(current_quarter, {}).get('name', f'Q{current_quarter}')
         
+        # Convert normalized field names back to template-expected format
+        template_server = {
+            'Server Name': server.get('server_name', ''),
+            'Server Timezone': server.get('server_timezone', ''),
+            'Q1 Patch Date': server.get('q1_patch_date', ''),
+            'Q1 Patch Time': server.get('q1_patch_time', ''),
+            'Q2 Patch Date': server.get('q2_patch_date', ''),
+            'Q2 Patch Time': server.get('q2_patch_time', ''),
+            'Q3 Patch Date': server.get('q3_patch_date', ''),
+            'Q3 Patch Time': server.get('q3_patch_time', ''),
+            'Q4 Patch Date': server.get('q4_patch_date', ''),
+            'Q4 Patch Time': server.get('q4_patch_time', ''),
+            'Q1 Approval Status': server.get('q1_approval_status', 'Pending'),
+            'Q2 Approval Status': server.get('q2_approval_status', 'Pending'),
+            'Q3 Approval Status': server.get('q3_approval_status', 'Pending'),
+            'Q4 Approval Status': server.get('q4_approval_status', 'Pending'),
+            'Current Quarter Patching Status': server.get('current_quarter_status', 'Pending'),
+            'primary_owner': server.get('primary_owner', ''),
+            'secondary_owner': server.get('secondary_owner', ''),
+            'location': server.get('location', ''),
+            'incident_ticket': server.get('incident_ticket', ''),
+            'patcher_email': server.get('patcher_email', ''),
+            'host_group': server.get('host_group', ''),
+            'operating_system': server.get('operating_system', ''),
+            'environment': server.get('environment', '')
+        }
+        
         return render_template(
             'server_detail.html', 
-            server=server, 
+            server=template_server, 
             current_quarter=current_quarter,
             quarter_name=quarter_name,
             quarters=Config.QUARTERS,
@@ -1787,6 +1871,420 @@ def is_freeze_period(patch_date=None):
     
     # If patch date is in next week or later, allow changes
     return False
+
+# System Configuration Routes
+@app.route('/system_config', methods=['GET', 'POST'])
+@login_required
+def system_config():
+    if not current_user.role == 'admin':
+        flash('Admin access required')
+        return redirect(url_for('dashboard'))
+    
+    messages = []
+    
+    if request.method == 'POST':
+        try:
+            # Update configuration based on form data
+            config_updates = {}
+            
+            # LDAP settings
+            config_updates['LDAP_ENABLED'] = 'ldap_enabled' in request.form
+            config_updates['LDAP_SERVER'] = request.form.get('ldap_server', '')
+            config_updates['LDAP_BASE_DN'] = request.form.get('ldap_base_dn', '')
+            config_updates['LDAP_BIND_DN'] = request.form.get('ldap_bind_dn', '')
+            config_updates['LDAP_BIND_PASSWORD'] = request.form.get('ldap_bind_password', '')
+            config_updates['ADMIN_NETGROUP'] = request.form.get('admin_netgroup', '')
+            
+            # Email settings
+            config_updates['USE_SENDMAIL'] = 'use_sendmail' in request.form
+            config_updates['SMTP_SERVER'] = request.form.get('smtp_server', '')
+            config_updates['SMTP_PORT'] = request.form.get('smtp_port', '587')
+            config_updates['SMTP_USERNAME'] = request.form.get('smtp_username', '')
+            config_updates['SMTP_PASSWORD'] = request.form.get('smtp_password', '')
+            config_updates['SMTP_USE_TLS'] = 'smtp_use_tls' in request.form
+            
+            # Database settings
+            config_updates['DB_HOST'] = request.form.get('db_host', '')
+            config_updates['DB_PORT'] = request.form.get('db_port', '5432')
+            config_updates['DB_NAME'] = request.form.get('db_name', '')
+            config_updates['DB_USER'] = request.form.get('db_user', '')
+            config_updates['DB_PASSWORD'] = request.form.get('db_password', '')
+            
+            # Patching script settings
+            config_updates['PATCHING_SCRIPT_PATH'] = request.form.get('patching_script_path', '')
+            config_updates['VALIDATE_PATCHING_SCRIPT'] = 'validate_patching_script' in request.form
+            config_updates['SSH_CONNECTION_TIMEOUT'] = request.form.get('ssh_timeout', '30')
+            config_updates['SSH_COMMAND_TIMEOUT'] = request.form.get('ssh_command_timeout', '300')
+            config_updates['MAX_RETRY_ATTEMPTS'] = request.form.get('max_retry_attempts', '3')
+            
+            # Save configuration to environment file
+            save_config_to_env(config_updates)
+            messages.append(('success', 'Configuration saved successfully!'))
+            
+        except Exception as e:
+            messages.append(('error', f'Error saving configuration: {str(e)}'))
+    
+    # Get current configuration and system status
+    config = Config()
+    
+    # Check system status
+    ldap_status, ldap_status_text = check_ldap_status()
+    sendmail_status, sendmail_status_text = check_sendmail_status()
+    patching_paused = is_patching_paused()
+    schedule_frozen = is_schedule_frozen()
+    service_status, service_status_text = check_service_status()
+    system_health, system_health_text = check_system_health()
+    
+    return render_template('system_config.html',
+                         config=config,
+                         messages=messages,
+                         ldap_status=ldap_status,
+                         ldap_status_text=ldap_status_text,
+                         sendmail_status=sendmail_status,
+                         sendmail_status_text=sendmail_status_text,
+                         patching_paused=patching_paused,
+                         schedule_frozen=schedule_frozen,
+                         service_status=service_status,
+                         service_status_text=service_status_text,
+                         system_health=system_health,
+                         system_health_text=system_health_text)
+
+@app.route('/test_ldap', methods=['POST'])
+@login_required
+def test_ldap():
+    if not current_user.role == 'admin':
+        return jsonify({'success': False, 'error': 'Admin access required'})
+    
+    try:
+        data = request.json
+        from utils.nslcd_ldap_auth import NSLCDLDAPAuthenticator
+        
+        auth = NSLCDLDAPAuthenticator()
+        # Test LDAP connection with provided settings
+        result = auth.test_ldap_connection(
+            server=data['server'],
+            base_dn=data['base_dn'],
+            bind_dn=data['bind_dn'],
+            password=data['password']
+        )
+        
+        return jsonify({'success': result, 'error': None if result else 'Connection failed'})
+    except Exception as e:
+        return jsonify({'success': False, 'error': str(e)})
+
+@app.route('/test_email', methods=['POST'])
+@login_required
+def test_email():
+    if not current_user.role == 'admin':
+        return jsonify({'success': False, 'error': 'Admin access required'})
+    
+    try:
+        data = request.json
+        from utils.email_sender import EmailSender
+        
+        email_sender = EmailSender()
+        # Test email with provided settings
+        result = email_sender.test_email_config(data)
+        
+        return jsonify({'success': result, 'error': None if result else 'Email test failed'})
+    except Exception as e:
+        return jsonify({'success': False, 'error': str(e)})
+
+@app.route('/test_database', methods=['POST'])
+@login_required
+def test_database():
+    if not current_user.role == 'admin':
+        return jsonify({'success': False, 'error': 'Admin access required'})
+    
+    try:
+        data = request.json
+        from database.models import DatabaseManager
+        
+        db = DatabaseManager()
+        # Test database connection with provided settings
+        result = db.test_connection(
+            host=data['host'],
+            port=data['port'],
+            dbname=data['name'],
+            user=data['user'],
+            password=data['password']
+        )
+        
+        return jsonify({'success': result, 'error': None if result else 'Database connection failed'})
+    except Exception as e:
+        return jsonify({'success': False, 'error': str(e)})
+
+@app.route('/test_patching_script', methods=['POST'])
+@login_required
+def test_patching_script():
+    if not current_user.role == 'admin':
+        return jsonify({'success': False, 'error': 'Admin access required'})
+    
+    try:
+        data = request.json
+        script_path = data.get('script_path')
+        validate_script = data.get('validate_script', True)
+        
+        if not script_path:
+            return jsonify({'success': False, 'error': 'Script path is required'})
+        
+        # Get a random server from the CSV to test on
+        from utils.csv_handler import CSVHandler
+        csv_handler = CSVHandler()
+        servers = csv_handler.read_servers()
+        
+        if not servers:
+            return jsonify({'success': False, 'error': 'No servers found in CSV'})
+        
+        import random
+        test_server = random.choice(servers)
+        server_name = test_server.get('server_name', test_server.get('Server Name', 'Unknown'))
+        
+        # Test SSH connection and script existence
+        from utils.ssh_manager import SSHManager
+        ssh_manager = SSHManager()
+        
+        try:
+            # Test SSH connection
+            result = ssh_manager.test_connection(server_name)
+            if not result:
+                return jsonify({'success': False, 'error': f'SSH connection failed to {server_name}'})
+            
+            # Test script existence if validation is enabled
+            if validate_script:
+                script_exists = ssh_manager.check_file_exists(server_name, script_path)
+                if not script_exists:
+                    return jsonify({'success': False, 'error': f'Script {script_path} not found on {server_name}'})
+            
+            # Test script is executable
+            is_executable = ssh_manager.check_file_executable(server_name, script_path)
+            if not is_executable:
+                return jsonify({'success': False, 'error': f'Script {script_path} is not executable on {server_name}'})
+            
+            message = f'✅ Script test successful on {server_name}\n'
+            message += f'• SSH connection: OK\n'
+            if validate_script:
+                message += f'• Script exists: OK\n'
+            message += f'• Script executable: OK'
+            
+            return jsonify({'success': True, 'message': message})
+            
+        except Exception as e:
+            return jsonify({'success': False, 'error': f'Test failed on {server_name}: {str(e)}'})
+    
+    except Exception as e:
+        return jsonify({'success': False, 'error': str(e)})
+
+@app.route('/control_patching', methods=['POST'])
+@login_required
+def control_patching():
+    if not current_user.role == 'admin':
+        return jsonify({'success': False, 'error': 'Admin access required'})
+    
+    try:
+        data = request.json
+        action = data.get('action')
+        
+        if action == 'pause':
+            set_patching_paused(True)
+            app.logger.info(f"Patching paused by admin user: {current_user.name}")
+        elif action == 'resume':
+            set_patching_paused(False)
+            app.logger.info(f"Patching resumed by admin user: {current_user.name}")
+        
+        return jsonify({'success': True})
+    except Exception as e:
+        return jsonify({'success': False, 'error': str(e)})
+
+@app.route('/control_scheduling', methods=['POST'])
+@login_required
+def control_scheduling():
+    if not current_user.role == 'admin':
+        return jsonify({'success': False, 'error': 'Admin access required'})
+    
+    try:
+        data = request.json
+        action = data.get('action')
+        
+        if action == 'freeze':
+            set_schedule_frozen(True)
+            app.logger.info(f"Scheduling frozen by admin user: {current_user.name}")
+        elif action == 'unfreeze':
+            set_schedule_frozen(False)
+            app.logger.info(f"Scheduling unfrozen by admin user: {current_user.name}")
+        
+        return jsonify({'success': True})
+    except Exception as e:
+        return jsonify({'success': False, 'error': str(e)})
+
+@app.route('/refresh_services', methods=['POST'])
+@login_required
+def refresh_services():
+    if not current_user.role == 'admin':
+        return jsonify({'success': False, 'error': 'Admin access required'})
+    
+    try:
+        # Refresh service status
+        import subprocess
+        subprocess.run(['systemctl', 'daemon-reload'], check=True)
+        app.logger.info(f"Services refreshed by admin user: {current_user.name}")
+        return jsonify({'success': True})
+    except Exception as e:
+        return jsonify({'success': False, 'error': str(e)})
+
+@app.route('/clear_cache', methods=['POST'])
+@login_required
+def clear_cache():
+    if not current_user.role == 'admin':
+        return jsonify({'success': False, 'error': 'Admin access required'})
+    
+    try:
+        # Clear application cache
+        import os
+        import shutil
+        
+        cache_dirs = ['/tmp/patching_cache', '/var/tmp/patching_cache']
+        for cache_dir in cache_dirs:
+            if os.path.exists(cache_dir):
+                shutil.rmtree(cache_dir)
+        
+        app.logger.info(f"Cache cleared by admin user: {current_user.name}")
+        return jsonify({'success': True})
+    except Exception as e:
+        return jsonify({'success': False, 'error': str(e)})
+
+@app.route('/view_logs')
+@login_required
+def view_logs():
+    if not current_user.role == 'admin':
+        flash('Admin access required')
+        return redirect(url_for('dashboard'))
+    
+    try:
+        # Read recent log entries
+        log_entries = []
+        log_files = [
+            '/var/log/patching/patching.log',
+            '/opt/linux_patching_automation/logs/patching.log'
+        ]
+        
+        for log_file in log_files:
+            if os.path.exists(log_file):
+                with open(log_file, 'r') as f:
+                    lines = f.readlines()
+                    log_entries.extend(lines[-100:])  # Last 100 lines
+                break
+        
+        return render_template('logs.html', log_entries=log_entries)
+    except Exception as e:
+        flash(f'Error reading logs: {str(e)}')
+        return redirect(url_for('system_config'))
+
+# Helper functions for system configuration
+def save_config_to_env(config_updates):
+    """Save configuration updates to environment file"""
+    env_file = '/opt/linux_patching_automation/.env'
+    
+    # Read existing environment
+    existing_env = {}
+    if os.path.exists(env_file):
+        with open(env_file, 'r') as f:
+            for line in f:
+                if '=' in line and not line.startswith('#'):
+                    key, value = line.strip().split('=', 1)
+                    existing_env[key] = value
+    
+    # Update with new values
+    existing_env.update(config_updates)
+    
+    # Write back to file
+    with open(env_file, 'w') as f:
+        f.write("# Linux Patching Automation Configuration\n")
+        f.write("# Generated automatically - do not edit manually\n\n")
+        for key, value in existing_env.items():
+            f.write(f"{key}={value}\n")
+
+def check_ldap_status():
+    """Check LDAP connection status"""
+    try:
+        if not Config.LDAP_ENABLED:
+            return 'disabled', 'LDAP Disabled'
+        
+        from utils.nslcd_ldap_auth import NSLCDLDAPAuthenticator
+        auth = NSLCDLDAPAuthenticator()
+        if auth.test_ldap_connection():
+            return 'connected', 'Connected'
+        else:
+            return 'error', 'Connection Error'
+    except Exception:
+        return 'error', 'Error'
+
+def check_sendmail_status():
+    """Check sendmail availability"""
+    try:
+        import subprocess
+        result = subprocess.run(['which', 'sendmail'], capture_output=True, text=True)
+        if result.returncode == 0:
+            return 'available', 'Available'
+        else:
+            return 'unavailable', 'Not Available'
+    except Exception:
+        return 'unavailable', 'Error'
+
+def is_patching_paused():
+    """Check if patching is paused"""
+    try:
+        with open('/tmp/patching_paused', 'r') as f:
+            return f.read().strip() == 'true'
+    except FileNotFoundError:
+        return False
+
+def set_patching_paused(paused):
+    """Set patching paused state"""
+    with open('/tmp/patching_paused', 'w') as f:
+        f.write('true' if paused else 'false')
+
+def is_schedule_frozen():
+    """Check if scheduling is frozen"""
+    try:
+        with open('/tmp/schedule_frozen', 'r') as f:
+            return f.read().strip() == 'true'
+    except FileNotFoundError:
+        return False
+
+def set_schedule_frozen(frozen):
+    """Set schedule frozen state"""
+    with open('/tmp/schedule_frozen', 'w') as f:
+        f.write('true' if frozen else 'false')
+
+def check_service_status():
+    """Check service status"""
+    try:
+        import subprocess
+        result = subprocess.run(['systemctl', 'is-active', 'patching-portal'], 
+                              capture_output=True, text=True)
+        if result.returncode == 0:
+            return 'running', 'Running'
+        else:
+            return 'stopped', 'Stopped'
+    except Exception:
+        return 'unknown', 'Unknown'
+
+def check_system_health():
+    """Check overall system health"""
+    try:
+        # Check disk space
+        import shutil
+        free_space = shutil.disk_usage('/').free / (1024**3)  # GB
+        
+        if free_space < 1:
+            return 'critical', 'Low Disk Space'
+        elif free_space < 5:
+            return 'warning', 'Warning'
+        else:
+            return 'healthy', 'Healthy'
+    except Exception:
+        return 'unknown', 'Unknown'
 
 if __name__ == '__main__':
     app.run(debug=True, host='0.0.0.0', port=5001)

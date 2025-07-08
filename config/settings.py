@@ -12,8 +12,8 @@ class Config:
     DB_PASSWORD = os.getenv('DB_PASSWORD', 'CHANGE_ME_IN_PRODUCTION')
     
     # Email Configuration
-    # WARNING: Set these via environment variables in production
-    USE_SENDMAIL = os.getenv('USE_SENDMAIL', 'false').lower() == 'true'
+    # Use system sendmail by default (no system config changes needed)
+    USE_SENDMAIL = os.getenv('USE_SENDMAIL', 'true').lower() == 'true'
     SMTP_SERVER = os.getenv('SMTP_SERVER', 'smtp.example.com')
     SMTP_PORT = int(os.getenv('SMTP_PORT', '587'))
     SMTP_USERNAME = os.getenv('SMTP_USERNAME', 'patching@example.com')
@@ -50,6 +50,32 @@ class Config:
     CSV_FILE_PATH = os.path.join(DATA_DIR, 'servers.csv')
     LOG_DIR = os.path.join(PROJECT_ROOT, 'logs')
     TEMPLATES_DIR = os.path.join(PROJECT_ROOT, 'templates')
+    
+    # LDAP Configuration
+    LDAP_ENABLED = os.getenv('LDAP_ENABLED', 'False').lower() == 'true'
+    LDAP_SERVER = os.getenv('LDAP_SERVER', 'ldap://ldap.company.com')
+    LDAP_BASE_DN = os.getenv('LDAP_BASE_DN', 'dc=company,dc=com')
+    LDAP_BIND_DN = os.getenv('LDAP_BIND_DN', 'cn=admin,dc=company,dc=com')
+    LDAP_BIND_PASSWORD = os.getenv('LDAP_BIND_PASSWORD', '')
+    
+    # Admin Control via Linux Netgroups
+    ADMIN_NETGROUP = os.getenv('ADMIN_NETGROUP', 'patching_admins')
+    
+    # Authentication Settings
+    ENABLE_FALLBACK_AUTH = os.getenv('ENABLE_FALLBACK_AUTH', 'True').lower() == 'true'
+    
+    # Remote Patching Script Configuration
+    PATCHING_SCRIPT_PATH = os.getenv('PATCHING_SCRIPT_PATH', '/opt/scripts/patch_server.sh')
+    VALIDATE_PATCHING_SCRIPT = os.getenv('VALIDATE_PATCHING_SCRIPT', 'True').lower() == 'true'
+    
+    # SSH Configuration for Remote Operations
+    SSH_CONNECTION_TIMEOUT = int(os.getenv('SSH_CONNECTION_TIMEOUT', '30'))  # seconds
+    SSH_COMMAND_TIMEOUT = int(os.getenv('SSH_COMMAND_TIMEOUT', '300'))       # seconds (5 minutes)
+    MAX_RETRY_ATTEMPTS = int(os.getenv('MAX_RETRY_ATTEMPTS', '3'))
+    
+    # Logging Configuration
+    LOG_LEVEL = 'INFO'
+    LOG_FORMAT = '%(asctime)s - %(name)s - %(levelname)s - %(message)s'
     
     @staticmethod
     def get_current_quarter():

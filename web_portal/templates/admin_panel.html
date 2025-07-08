@@ -45,6 +45,10 @@
 <div class="admin-header">
     <h1>🔧 Administrator Panel</h1>
     <p>System administration and user management for the patching portal</p>
+    <div style="margin-top: 15px;">
+        <a href="{{ url_for('system_config') }}" class="btn btn-primary">⚙️ System Configuration</a>
+        <a href="{{ url_for('admin_advanced') }}" class="btn btn-secondary">🔧 Advanced Settings</a>
+    </div>
 </div>
 
 <div class="row">

@@ -10,3 +10,5 @@ python-crontab==3.0.0
 schedule==1.2.0
 pysnmp==4.4.12
 prometheus-client==0.17.1
+python-ldap==3.4.3
+ldap3==2.9.1

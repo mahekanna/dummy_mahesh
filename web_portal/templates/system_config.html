@@ -1,0 +1,630 @@
+{% extends "base.html" %}
+
+{% block title %}System Configuration - Patching Portal{% endblock %}
+
+{% block extra_head %}
+<style>
+    .config-header {
+        background-color: #17a2b8;
+        color: white;
+        padding: 20px;
+        margin-bottom: 20px;
+        border-radius: 4px;
+    }
+    .config-section {
+        background-color: #f8f9fa;
+        padding: 20px;
+        margin-bottom: 20px;
+        border-radius: 4px;
+        border: 1px solid #dee2e6;
+    }
+    .config-section h4 {
+        color: #495057;
+        margin-bottom: 15px;
+        padding-bottom: 10px;
+        border-bottom: 1px solid #dee2e6;
+    }
+    .form-group {
+        margin-bottom: 15px;
+    }
+    .form-control {
+        width: 100%;
+        padding: 8px 12px;
+        border: 1px solid #ced4da;
+        border-radius: 4px;
+    }
+    .btn-test {
+        background-color: #ffc107;
+        color: #212529;
+        border: 1px solid #ffc107;
+        padding: 8px 16px;
+        border-radius: 4px;
+        margin-left: 10px;
+    }
+    .btn-test:hover {
+        background-color: #e0a800;
+        border-color: #d39e00;
+    }
+    .status-indicator {
+        display: inline-block;
+        padding: 4px 8px;
+        border-radius: 4px;
+        font-size: 0.8em;
+        font-weight: bold;
+        margin-left: 10px;
+    }
+    .status-success { background-color: #d4edda; color: #155724; }
+    .status-error { background-color: #f8d7da; color: #721c24; }
+    .status-warning { background-color: #fff3cd; color: #856404; }
+    .alert {
+        padding: 15px;
+        margin-bottom: 20px;
+        border: 1px solid transparent;
+        border-radius: 4px;
+    }
+    .alert-success {
+        color: #155724;
+        background-color: #d4edda;
+        border-color: #c3e6cb;
+    }
+    .alert-danger {
+        color: #721c24;
+        background-color: #f8d7da;
+        border-color: #f5c6cb;
+    }
+    .alert-warning {
+        color: #856404;
+        background-color: #fff3cd;
+        border-color: #ffeaa7;
+    }
+    .service-control {
+        display: flex;
+        align-items: center;
+        justify-content: space-between;
+        margin-bottom: 10px;
+    }
+    .btn-danger {
+        background-color: #dc3545;
+        color: white;
+        border: 1px solid #dc3545;
+        padding: 8px 16px;
+        border-radius: 4px;
+    }
+    .btn-success {
+        background-color: #28a745;
+        color: white;
+        border: 1px solid #28a745;
+        padding: 8px 16px;
+        border-radius: 4px;
+    }
+</style>
+{% endblock %}
+
+{% block content %}
+<div class="config-header">
+    <h1>⚙️ System Configuration</h1>
+    <p>Configure LDAP authentication, email settings, and system controls</p>
+</div>
+
+{% if messages %}
+    {% for category, message in messages %}
+        <div class="alert alert-{{ 'success' if category == 'success' else 'danger' if category == 'error' else 'warning' }}">
+            {{ message }}
+        </div>
+    {% endfor %}
+{% endif %}
+
+<div class="row">
+    <div class="col-md-8">
+        <form method="POST" action="{{ url_for('system_config') }}">
+            
+            <!-- LDAP Configuration Section -->
+            <div class="config-section">
+                <h4>🔐 LDAP Authentication</h4>
+                <div class="form-group">
+                    <label for="ldap_enabled">
+                        <input type="checkbox" id="ldap_enabled" name="ldap_enabled" {{ 'checked' if config.LDAP_ENABLED else '' }}>
+                        Enable LDAP Authentication
+                    </label>
+                    <span class="status-indicator {{ 'status-success' if ldap_status == 'connected' else 'status-error' if ldap_status == 'error' else 'status-warning' }}">
+                        {{ ldap_status_text }}
+                    </span>
+                </div>
+                
+                <div class="form-group">
+                    <label for="ldap_server">LDAP Server:</label>
+                    <input type="text" class="form-control" id="ldap_server" name="ldap_server" 
+                           value="{{ config.LDAP_SERVER }}" placeholder="ldap://ldap.company.com">
+                </div>
+                
+                <div class="form-group">
+                    <label for="ldap_base_dn">Base DN:</label>
+                    <input type="text" class="form-control" id="ldap_base_dn" name="ldap_base_dn" 
+                           value="{{ config.LDAP_BASE_DN }}" placeholder="dc=company,dc=com">
+                </div>
+                
+                <div class="form-group">
+                    <label for="ldap_bind_dn">Bind DN:</label>
+                    <input type="text" class="form-control" id="ldap_bind_dn" name="ldap_bind_dn" 
+                           value="{{ config.LDAP_BIND_DN }}" placeholder="cn=admin,dc=company,dc=com">
+                </div>
+                
+                <div class="form-group">
+                    <label for="ldap_bind_password">Bind Password:</label>
+                    <input type="password" class="form-control" id="ldap_bind_password" name="ldap_bind_password" 
+                           value="{{ config.LDAP_BIND_PASSWORD }}" placeholder="Enter bind password">
+                </div>
+                
+                <div class="form-group">
+                    <label for="admin_netgroup">Admin Netgroup:</label>
+                    <input type="text" class="form-control" id="admin_netgroup" name="admin_netgroup" 
+                           value="{{ config.ADMIN_NETGROUP }}" placeholder="patching_admins">
+                    <small class="form-text text-muted">Linux netgroup for admin users</small>
+                </div>
+                
+                <button type="button" class="btn-test" onclick="testLDAPConnection()">Test LDAP Connection</button>
+            </div>
+            
+            <!-- Patching Script Configuration Section -->
+            <div class="config-section">
+                <h4>🔧 Remote Patching Script</h4>
+                <div class="form-group">
+                    <label for="patching_script_path">Patching Script Path:</label>
+                    <input type="text" class="form-control" id="patching_script_path" name="patching_script_path" 
+                           value="{{ config.PATCHING_SCRIPT_PATH }}" placeholder="/opt/scripts/patch_server.sh">
+                    <small class="form-text text-muted">Absolute path to patching script on all remote servers</small>
+                </div>
+                
+                <div class="form-group">
+                    <label for="validate_patching_script">
+                        <input type="checkbox" id="validate_patching_script" name="validate_patching_script" {{ 'checked' if config.VALIDATE_PATCHING_SCRIPT else '' }}>
+                        Validate script exists on remote servers before patching
+                    </label>
+                </div>
+                
+                <div class="form-group">
+                    <label for="ssh_timeout">SSH Connection Timeout (seconds):</label>
+                    <input type="number" class="form-control" id="ssh_timeout" name="ssh_timeout" 
+                           value="{{ config.SSH_CONNECTION_TIMEOUT }}" placeholder="30" min="10" max="120">
+                </div>
+                
+                <div class="form-group">
+                    <label for="ssh_command_timeout">SSH Command Timeout (seconds):</label>
+                    <input type="number" class="form-control" id="ssh_command_timeout" name="ssh_command_timeout" 
+                           value="{{ config.SSH_COMMAND_TIMEOUT }}" placeholder="300" min="60" max="1800">
+                </div>
+                
+                <div class="form-group">
+                    <label for="max_retry_attempts">Max Retry Attempts:</label>
+                    <input type="number" class="form-control" id="max_retry_attempts" name="max_retry_attempts" 
+                           value="{{ config.MAX_RETRY_ATTEMPTS }}" placeholder="3" min="1" max="10">
+                </div>
+                
+                <button type="button" class="btn-test" onclick="testPatchingScript()">Test Script on Random Server</button>
+            </div>
+            
+            <!-- Email Configuration Section -->
+            <div class="config-section">
+                <h4>📧 Email Settings</h4>
+                <div class="form-group">
+                    <label for="use_sendmail">
+                        <input type="checkbox" id="use_sendmail" name="use_sendmail" {{ 'checked' if config.USE_SENDMAIL else '' }}>
+                        Use System Sendmail (Recommended for RHEL)
+                    </label>
+                    <span class="status-indicator {{ 'status-success' if sendmail_status == 'available' else 'status-error' }}">
+                        {{ sendmail_status_text }}
+                    </span>
+                </div>
+                
+                <div id="smtp_settings" style="{{ 'display: none;' if config.USE_SENDMAIL else '' }}">
+                    <div class="form-group">
+                        <label for="smtp_server">SMTP Server:</label>
+                        <input type="text" class="form-control" id="smtp_server" name="smtp_server" 
+                               value="{{ config.SMTP_SERVER }}" placeholder="smtp.company.com">
+                    </div>
+                    
+                    <div class="form-group">
+                        <label for="smtp_port">SMTP Port:</label>
+                        <input type="number" class="form-control" id="smtp_port" name="smtp_port" 
+                               value="{{ config.SMTP_PORT }}" placeholder="587">
+                    </div>
+                    
+                    <div class="form-group">
+                        <label for="smtp_username">SMTP Username:</label>
+                        <input type="text" class="form-control" id="smtp_username" name="smtp_username" 
+                               value="{{ config.SMTP_USERNAME }}" placeholder="patching@company.com">
+                    </div>
+                    
+                    <div class="form-group">
+                        <label for="smtp_password">SMTP Password:</label>
+                        <input type="password" class="form-control" id="smtp_password" name="smtp_password" 
+                               value="{{ config.SMTP_PASSWORD }}" placeholder="Enter SMTP password">
+                    </div>
+                    
+                    <div class="form-group">
+                        <label for="smtp_use_tls">
+                            <input type="checkbox" id="smtp_use_tls" name="smtp_use_tls" {{ 'checked' if config.SMTP_USE_TLS else '' }}>
+                            Use TLS/SSL
+                        </label>
+                    </div>
+                </div>
+                
+                <button type="button" class="btn-test" onclick="testEmailConnection()">Test Email</button>
+            </div>
+            
+            <!-- Database Configuration Section -->
+            <div class="config-section">
+                <h4>💾 Database Settings</h4>
+                <div class="form-group">
+                    <label for="db_host">Database Host:</label>
+                    <input type="text" class="form-control" id="db_host" name="db_host" 
+                           value="{{ config.DB_HOST }}" placeholder="localhost">
+                </div>
+                
+                <div class="form-group">
+                    <label for="db_port">Database Port:</label>
+                    <input type="number" class="form-control" id="db_port" name="db_port" 
+                           value="{{ config.DB_PORT }}" placeholder="5432">
+                </div>
+                
+                <div class="form-group">
+                    <label for="db_name">Database Name:</label>
+                    <input type="text" class="form-control" id="db_name" name="db_name" 
+                           value="{{ config.DB_NAME }}" placeholder="patching_db">
+                </div>
+                
+                <div class="form-group">
+                    <label for="db_user">Database User:</label>
+                    <input type="text" class="form-control" id="db_user" name="db_user" 
+                           value="{{ config.DB_USER }}" placeholder="patch_admin">
+                </div>
+                
+                <div class="form-group">
+                    <label for="db_password">Database Password:</label>
+                    <input type="password" class="form-control" id="db_password" name="db_password" 
+                           value="{{ config.DB_PASSWORD }}" placeholder="Enter database password">
+                </div>
+                
+                <button type="button" class="btn-test" onclick="testDatabaseConnection()">Test Database</button>
+            </div>
+            
+            <div class="form-group">
+                <button type="submit" class="btn btn-primary">💾 Save Configuration</button>
+                <a href="{{ url_for('admin_panel') }}" class="btn btn-secondary">Cancel</a>
+            </div>
+        </form>
+    </div>
+    
+    <div class="col-md-4">
+        <!-- System Controls -->
+        <div class="config-section">
+            <h4>🎛️ System Controls</h4>
+            
+            <div class="service-control">
+                <span>Patching Status:</span>
+                <div>
+                    {% if patching_paused %}
+                        <span class="status-indicator status-warning">PAUSED</span>
+                        <button class="btn-success" onclick="resumePatching()">Resume</button>
+                    {% else %}
+                        <span class="status-indicator status-success">ACTIVE</span>
+                        <button class="btn-danger" onclick="pausePatching()">Pause</button>
+                    {% endif %}
+                </div>
+            </div>
+            
+            <div class="service-control">
+                <span>Schedule Freeze:</span>
+                <div>
+                    {% if schedule_frozen %}
+                        <span class="status-indicator status-warning">FROZEN</span>
+                        <button class="btn-success" onclick="unfreezeScheduling()">Unfreeze</button>
+                    {% else %}
+                        <span class="status-indicator status-success">FLEXIBLE</span>
+                        <button class="btn-danger" onclick="freezeScheduling()">Freeze</button>
+                    {% endif %}
+                </div>
+            </div>
+            
+            <hr>
+            
+            <div class="service-control">
+                <span>Service Status:</span>
+                <div>
+                    <span class="status-indicator {{ 'status-success' if service_status == 'running' else 'status-error' }}">
+                        {{ service_status_text }}
+                    </span>
+                </div>
+            </div>
+            
+            <div class="service-control">
+                <span>System Health:</span>
+                <div>
+                    <span class="status-indicator {{ 'status-success' if system_health == 'healthy' else 'status-warning' if system_health == 'warning' else 'status-error' }}">
+                        {{ system_health_text }}
+                    </span>
+                </div>
+            </div>
+        </div>
+        
+        <!-- Quick Actions -->
+        <div class="config-section">
+            <h4>⚡ Quick Actions</h4>
+            <button class="btn btn-primary btn-sm" onclick="refreshServices()">🔄 Refresh Services</button>
+            <button class="btn btn-warning btn-sm" onclick="clearCache()">🗑️ Clear Cache</button>
+            <button class="btn btn-info btn-sm" onclick="viewLogs()">📝 View Logs</button>
+        </div>
+    </div>
+</div>
+
+<script>
+// Toggle SMTP settings based on sendmail checkbox
+document.getElementById('use_sendmail').addEventListener('change', function() {
+    const smtpSettings = document.getElementById('smtp_settings');
+    if (this.checked) {
+        smtpSettings.style.display = 'none';
+    } else {
+        smtpSettings.style.display = 'block';
+    }
+});
+
+// Test LDAP connection
+function testLDAPConnection() {
+    const server = document.getElementById('ldap_server').value;
+    const baseDN = document.getElementById('ldap_base_dn').value;
+    const bindDN = document.getElementById('ldap_bind_dn').value;
+    const password = document.getElementById('ldap_bind_password').value;
+    
+    if (!server || !baseDN) {
+        alert('Please fill in LDAP server and base DN');
+        return;
+    }
+    
+    fetch('/test_ldap', {
+        method: 'POST',
+        headers: {
+            'Content-Type': 'application/json',
+        },
+        body: JSON.stringify({
+            server: server,
+            base_dn: baseDN,
+            bind_dn: bindDN,
+            password: password
+        })
+    })
+    .then(response => response.json())
+    .then(data => {
+        if (data.success) {
+            alert('LDAP connection successful!');
+        } else {
+            alert('LDAP connection failed: ' + data.error);
+        }
+    })
+    .catch(error => {
+        alert('Error testing LDAP connection: ' + error);
+    });
+}
+
+// Test email connection
+function testEmailConnection() {
+    const useSendmail = document.getElementById('use_sendmail').checked;
+    let config = { use_sendmail: useSendmail };
+    
+    if (!useSendmail) {
+        config.smtp_server = document.getElementById('smtp_server').value;
+        config.smtp_port = document.getElementById('smtp_port').value;
+        config.smtp_username = document.getElementById('smtp_username').value;
+        config.smtp_password = document.getElementById('smtp_password').value;
+        config.smtp_use_tls = document.getElementById('smtp_use_tls').checked;
+    }
+    
+    fetch('/test_email', {
+        method: 'POST',
+        headers: {
+            'Content-Type': 'application/json',
+        },
+        body: JSON.stringify(config)
+    })
+    .then(response => response.json())
+    .then(data => {
+        if (data.success) {
+            alert('Email test successful!');
+        } else {
+            alert('Email test failed: ' + data.error);
+        }
+    })
+    .catch(error => {
+        alert('Error testing email: ' + error);
+    });
+}
+
+// Test database connection
+function testDatabaseConnection() {
+    const config = {
+        host: document.getElementById('db_host').value,
+        port: document.getElementById('db_port').value,
+        name: document.getElementById('db_name').value,
+        user: document.getElementById('db_user').value,
+        password: document.getElementById('db_password').value
+    };
+    
+    fetch('/test_database', {
+        method: 'POST',
+        headers: {
+            'Content-Type': 'application/json',
+        },
+        body: JSON.stringify(config)
+    })
+    .then(response => response.json())
+    .then(data => {
+        if (data.success) {
+            alert('Database connection successful!');
+        } else {
+            alert('Database connection failed: ' + data.error);
+        }
+    })
+    .catch(error => {
+        alert('Error testing database: ' + error);
+    });
+}
+
+// Test patching script
+function testPatchingScript() {
+    const scriptPath = document.getElementById('patching_script_path').value;
+    const validateScript = document.getElementById('validate_patching_script').checked;
+    
+    if (!scriptPath) {
+        alert('Please enter a patching script path');
+        return;
+    }
+    
+    if (!scriptPath.startsWith('/') || !scriptPath.endsWith('.sh')) {
+        alert('Please provide a valid absolute path ending with .sh');
+        return;
+    }
+    
+    fetch('/test_patching_script', {
+        method: 'POST',
+        headers: {
+            'Content-Type': 'application/json',
+        },
+        body: JSON.stringify({
+            script_path: scriptPath,
+            validate_script: validateScript
+        })
+    })
+    .then(response => response.json())
+    .then(data => {
+        if (data.success) {
+            alert('Patching script test successful!\n' + data.message);
+        } else {
+            alert('Patching script test failed: ' + data.error);
+        }
+    })
+    .catch(error => {
+        alert('Error testing patching script: ' + error);
+    });
+}
+
+// System control functions
+function pausePatching() {
+    if (confirm('Are you sure you want to pause all patching operations?')) {
+        fetch('/control_patching', {
+            method: 'POST',
+            headers: {
+                'Content-Type': 'application/json',
+            },
+            body: JSON.stringify({action: 'pause'})
+        })
+        .then(response => response.json())
+        .then(data => {
+            if (data.success) {
+                location.reload();
+            } else {
+                alert('Error pausing patching: ' + data.error);
+            }
+        });
+    }
+}
+
+function resumePatching() {
+    if (confirm('Are you sure you want to resume patching operations?')) {
+        fetch('/control_patching', {
+            method: 'POST',
+            headers: {
+                'Content-Type': 'application/json',
+            },
+            body: JSON.stringify({action: 'resume'})
+        })
+        .then(response => response.json())
+        .then(data => {
+            if (data.success) {
+                location.reload();
+            } else {
+                alert('Error resuming patching: ' + data.error);
+            }
+        });
+    }
+}
+
+function freezeScheduling() {
+    if (confirm('Are you sure you want to freeze server scheduling?')) {
+        fetch('/control_scheduling', {
+            method: 'POST',
+            headers: {
+                'Content-Type': 'application/json',
+            },
+            body: JSON.stringify({action: 'freeze'})
+        })
+        .then(response => response.json())
+        .then(data => {
+            if (data.success) {
+                location.reload();
+            } else {
+                alert('Error freezing scheduling: ' + data.error);
+            }
+        });
+    }
+}
+
+function unfreezeScheduling() {
+    if (confirm('Are you sure you want to unfreeze server scheduling?')) {
+        fetch('/control_scheduling', {
+            method: 'POST',
+            headers: {
+                'Content-Type': 'application/json',
+            },
+            body: JSON.stringify({action: 'unfreeze'})
+        })
+        .then(response => response.json())
+        .then(data => {
+            if (data.success) {
+                location.reload();
+            } else {
+                alert('Error unfreezing scheduling: ' + data.error);
+            }
+        });
+    }
+}
+
+function refreshServices() {
+    fetch('/refresh_services', {
+        method: 'POST',
+        headers: {
+            'Content-Type': 'application/json',
+        }
+    })
+    .then(response => response.json())
+    .then(data => {
+        if (data.success) {
+            location.reload();
+        } else {
+            alert('Error refreshing services: ' + data.error);
+        }
+    });
+}
+
+function clearCache() {
+    if (confirm('Are you sure you want to clear the system cache?')) {
+        fetch('/clear_cache', {
+            method: 'POST',
+            headers: {
+                'Content-Type': 'application/json',
+            }
+        })
+        .then(response => response.json())
+        .then(data => {
+            if (data.success) {
+                alert('Cache cleared successfully!');
+            } else {
+                alert('Error clearing cache: ' + data.error);
+            }
+        });
+    }
+}
+
+function viewLogs() {
+    window.open('/view_logs', '_blank');
+}
+</script>
+{% endblock %}

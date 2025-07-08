@@ -1,0 +1,107 @@
+{% extends "base.html" %}
+
+{% block title %}System Logs - Patching Portal{% endblock %}
+
+{% block extra_head %}
+<style>
+    .logs-header {
+        background-color: #28a745;
+        color: white;
+        padding: 20px;
+        margin-bottom: 20px;
+        border-radius: 4px;
+    }
+    .log-container {
+        background-color: #f8f9fa;
+        border: 1px solid #dee2e6;
+        border-radius: 4px;
+        padding: 20px;
+        margin-bottom: 20px;
+        font-family: 'Courier New', monospace;
+        font-size: 12px;
+        max-height: 600px;
+        overflow-y: auto;
+    }
+    .log-entry {
+        margin-bottom: 2px;
+        padding: 2px 0;
+        border-bottom: 1px solid #eee;
+    }
+    .log-entry:last-child {
+        border-bottom: none;
+    }
+    .log-timestamp {
+        color: #6c757d;
+        font-weight: bold;
+    }
+    .log-level-info {
+        color: #28a745;
+    }
+    .log-level-warning {
+        color: #ffc107;
+    }
+    .log-level-error {
+        color: #dc3545;
+    }
+    .log-level-debug {
+        color: #17a2b8;
+    }
+    .controls {
+        margin-bottom: 20px;
+    }
+    .btn-refresh {
+        background-color: #17a2b8;
+        color: white;
+        border: 1px solid #17a2b8;
+        padding: 8px 16px;
+        border-radius: 4px;
+        text-decoration: none;
+        margin-right: 10px;
+    }
+    .btn-refresh:hover {
+        background-color: #138496;
+        border-color: #117a8b;
+        text-decoration: none;
+        color: white;
+    }
+</style>
+{% endblock %}
+
+{% block content %}
+<div class="logs-header">
+    <h1>📝 System Logs</h1>
+    <p>View recent system logs and events</p>
+</div>
+
+<div class="controls">
+    <a href="{{ url_for('view_logs') }}" class="btn-refresh">🔄 Refresh</a>
+    <a href="{{ url_for('system_config') }}" class="btn btn-secondary">⚙️ Back to Configuration</a>
+</div>
+
+<div class="log-container">
+    {% if log_entries %}
+        {% for entry in log_entries %}
+        <div class="log-entry">
+            {{ entry|safe }}
+        </div>
+        {% endfor %}
+    {% else %}
+        <div class="log-entry">
+            <em>No log entries found</em>
+        </div>
+    {% endif %}
+</div>
+
+<script>
+// Auto-refresh logs every 30 seconds
+setInterval(function() {
+    location.reload();
+}, 30000);
+
+// Scroll to bottom of logs
+document.addEventListener('DOMContentLoaded', function() {
+    var logContainer = document.querySelector('.log-container');
+    logContainer.scrollTop = logContainer.scrollHeight;
+});
+</script>
+{% endblock %}
