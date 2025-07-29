@@ -1,0 +1,106 @@
+# Prometheus configuration for Linux Patching Automation
+
+global:
+  scrape_interval: 15s
+  evaluation_interval: 15s
+  external_labels:
+    monitor: 'linux-patching-monitor'
+
+rule_files:
+  - "alerts.yml"
+
+alerting:
+  alertmanagers:
+    - static_configs:
+        - targets:
+          - alertmanager:9093
+
+scrape_configs:
+  # Prometheus itself
+  - job_name: 'prometheus'
+    static_configs:
+      - targets: ['localhost:9090']
+
+  # Linux Patching Backend API
+  - job_name: 'linux-patching-api'
+    static_configs:
+      - targets: ['localhost:8000']
+    scrape_interval: 30s
+    metrics_path: '/metrics'
+    scheme: http
+
+  # Linux Patching Frontend
+  - job_name: 'linux-patching-frontend'
+    static_configs:
+      - targets: ['localhost:3000']
+    scrape_interval: 60s
+    metrics_path: '/metrics'
+    scheme: http
+
+  # Node Exporter for system metrics
+  - job_name: 'node-exporter'
+    static_configs:
+      - targets: ['localhost:9100']
+    scrape_interval: 15s
+
+  # Process Exporter for application processes
+  - job_name: 'process-exporter'
+    static_configs:
+      - targets: ['localhost:9256']
+    scrape_interval: 30s
+
+  # Custom patching metrics
+  - job_name: 'patching-metrics'
+    static_configs:
+      - targets: ['localhost:8001']
+    scrape_interval: 30s
+    metrics_path: '/patching/metrics'
+    scheme: http
+
+  # Database metrics (if using PostgreSQL)
+  - job_name: 'postgres-exporter'
+    static_configs:
+      - targets: ['localhost:9187']
+    scrape_interval: 30s
+
+  # SSH connectivity metrics
+  - job_name: 'ssh-metrics'
+    static_configs:
+      - targets: ['localhost:8002']
+    scrape_interval: 60s
+    metrics_path: '/ssh/metrics'
+    scheme: http
+
+  # Email service metrics
+  - job_name: 'email-metrics'
+    static_configs:
+      - targets: ['localhost:8003']
+    scrape_interval: 120s
+    metrics_path: '/email/metrics'
+    scheme: http
+
+  # Blackbox exporter for external monitoring
+  - job_name: 'blackbox'
+    metrics_path: /probe
+    params:
+      module: [http_2xx]
+    static_configs:
+      - targets:
+        - http://localhost:3000/health
+        - http://localhost:8000/health
+    relabel_configs:
+      - source_labels: [__address__]
+        target_label: __param_target
+      - source_labels: [__param_target]
+        target_label: instance
+      - target_label: __address__
+        replacement: localhost:9115
+
+  # Custom application metrics
+  - job_name: 'custom-metrics'
+    static_configs:
+      - targets: ['localhost:8004']
+    scrape_interval: 30s
+    metrics_path: '/custom/metrics'
+    scheme: http
+    honor_labels: true

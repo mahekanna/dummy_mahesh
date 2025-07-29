@@ -1,0 +1,264 @@
+[build-system]
+requires = ["setuptools>=45", "wheel", "setuptools_scm[toml]>=6.2"]
+build-backend = "setuptools.build_meta"
+
+[project]
+name = "linux-patching-cli"
+version = "1.0.0"
+description = "Linux Patching Automation CLI System"
+readme = "README.md"
+requires-python = ">=3.9"
+license = {text = "MIT"}
+authors = [
+    {name = "Linux Patching Team", email = "admin@linuxpatching.com"},
+]
+classifiers = [
+    "Development Status :: 5 - Production/Stable",
+    "Intended Audience :: System Administrators",
+    "License :: OSI Approved :: MIT License",
+    "Operating System :: OS Independent",
+    "Programming Language :: Python :: 3",
+    "Programming Language :: Python :: 3.9",
+    "Programming Language :: Python :: 3.10",
+    "Programming Language :: Python :: 3.11",
+    "Topic :: System :: Systems Administration",
+    "Topic :: System :: Software Distribution",
+]
+dependencies = [
+    "click>=8.0.0",
+    "paramiko>=3.0.0",
+    "pandas>=2.0.0",
+    "pyyaml>=6.0.0",
+    "jinja2>=3.0.0",
+    "tabulate>=0.9.0",
+    "colorama>=0.4.0",
+    "tqdm>=4.64.0",
+    "cryptography>=41.0.0",
+    "requests>=2.31.0",
+    "rich>=13.0.0",
+    "python-dotenv>=1.0.0",
+    "schedule>=1.2.0",
+    "psutil>=5.9.0",
+    "pydantic>=2.0.0",
+    "pydantic-settings>=2.0.0",
+]
+
+[project.optional-dependencies]
+dev = [
+    "pytest>=7.0.0",
+    "pytest-cov>=4.0.0",
+    "pytest-mock>=3.10.0",
+    "pytest-asyncio>=0.21.0",
+    "black>=22.0.0",
+    "isort>=5.12.0",
+    "flake8>=5.0.0",
+    "mypy>=1.0.0",
+    "bandit[toml]>=1.7.0",
+    "safety>=2.0.0",
+    "pre-commit>=2.20.0",
+]
+api = [
+    "fastapi>=0.100.0",
+    "uvicorn[standard]>=0.22.0",
+    "httpx>=0.24.0",
+]
+docs = [
+    "sphinx>=5.0.0",
+    "sphinx-rtd-theme>=1.2.0",
+    "sphinx-autodoc-typehints>=1.19.0",
+]
+
+[project.urls]
+Homepage = "https://github.com/linuxpatching/automation"
+Documentation = "https://docs.linuxpatching.com"
+Repository = "https://github.com/linuxpatching/automation"
+Issues = "https://github.com/linuxpatching/automation/issues"
+
+[project.scripts]
+patch-manager = "cli.patch_manager:main"
+
+[tool.setuptools]
+packages = ["cli", "config", "core", "data", "utils"]
+
+[tool.setuptools.package-data]
+"*" = ["*.yml", "*.yaml", "*.json", "*.csv", "*.html", "*.jinja2"]
+
+# Black configuration
+[tool.black]
+line-length = 88
+target-version = ['py39']
+include = '\.pyi?$'
+extend-exclude = '''
+/(
+  # directories
+  \.eggs
+  | \.git
+  | \.hg
+  | \.mypy_cache
+  | \.tox
+  | \.venv
+  | build
+  | dist
+)/
+'''
+
+# isort configuration
+[tool.isort]
+profile = "black"
+multi_line_output = 3
+line_length = 88
+known_first_party = ["cli", "config", "core", "data", "utils"]
+sections = ["FUTURE", "STDLIB", "THIRDPARTY", "FIRSTPARTY", "LOCALFOLDER"]
+
+# mypy configuration
+[tool.mypy]
+python_version = "3.9"
+warn_return_any = true
+warn_unused_configs = true
+disallow_untyped_defs = true
+disallow_incomplete_defs = true
+check_untyped_defs = true
+disallow_untyped_decorators = true
+no_implicit_optional = true
+warn_redundant_casts = true
+warn_unused_ignores = true
+warn_no_return = true
+warn_unreachable = true
+strict_equality = true
+show_error_codes = true
+
+[[tool.mypy.overrides]]
+module = [
+    "paramiko.*",
+    "pandas.*",
+    "tabulate.*",
+    "colorama.*",
+    "tqdm.*",
+    "rich.*",
+    "schedule.*",
+    "psutil.*",
+]
+ignore_missing_imports = true
+
+# pytest configuration
+[tool.pytest.ini_options]
+minversion = "7.0"
+addopts = [
+    "--strict-markers",
+    "--strict-config",
+    "--verbose",
+    "--tb=short",
+    "--cov=cli",
+    "--cov=config",
+    "--cov=core",
+    "--cov=data",
+    "--cov=utils",
+    "--cov-report=term-missing",
+    "--cov-report=html",
+    "--cov-report=xml",
+    "--cov-fail-under=80",
+]
+testpaths = ["tests"]
+python_files = ["test_*.py", "*_test.py"]
+python_classes = ["Test*"]
+python_functions = ["test_*"]
+markers = [
+    "slow: marks tests as slow (deselect with '-m \"not slow\"')",
+    "integration: marks tests as integration tests",
+    "unit: marks tests as unit tests",
+    "ssh: marks tests that require SSH connectivity",
+    "email: marks tests that require email functionality",
+]
+
+# Coverage configuration
+[tool.coverage.run]
+source = ["cli", "config", "core", "data", "utils"]
+omit = [
+    "*/tests/*",
+    "*/test_*",
+    "*/__pycache__/*",
+    "*/migrations/*",
+    "*/venv/*",
+    "*/env/*",
+    "setup.py",
+]
+
+[tool.coverage.report]
+exclude_lines = [
+    "pragma: no cover",
+    "def __repr__",
+    "if self.debug:",
+    "if settings.DEBUG",
+    "raise AssertionError",
+    "raise NotImplementedError",
+    "if 0:",
+    "if __name__ == .__main__.:",
+    "class .*\\bProtocol\\):",
+    "@(abc\\.)?abstractmethod",
+]
+
+# Bandit configuration
+[tool.bandit]
+exclude_dirs = ["tests", "test_*"]
+skips = ["B101", "B601"]  # Skip assert_used and shell_injection for paramiko usage
+
+[tool.bandit.assert_used]
+skips = ["*_test.py", "*/test_*.py"]
+
+# Flake8 configuration (in setup.cfg or tox.ini)
+[flake8]
+max-line-length = 88
+extend-ignore = E203, E266, E501, W503
+max-complexity = 10
+select = B,C,E,F,W,T4,B9
+exclude = 
+    .git,
+    __pycache__,
+    .tox,
+    .eggs,
+    *.egg,
+    build,
+    dist,
+    .venv,
+    venv,
+    env
+
+# Tox configuration
+[tool.tox]
+legacy_tox_ini = """
+[tox]
+envlist = py39,py310,py311,lint,security,docs
+isolated_build = True
+
+[testenv]
+deps = -r requirements-dev.txt
+commands = pytest {posargs}
+
+[testenv:lint]
+deps = 
+    black
+    isort
+    flake8
+    mypy
+commands = 
+    black --check .
+    isort --check-only .
+    flake8 .
+    mypy .
+
+[testenv:security]
+deps = 
+    bandit[toml]
+    safety
+commands = 
+    bandit -r . -x tests/
+    safety check
+
+[testenv:docs]
+deps = 
+    sphinx
+    sphinx-rtd-theme
+    sphinx-autodoc-typehints
+commands = 
+    sphinx-build -b html docs docs/_build/html
+"""

@@ -1,0 +1,31 @@
+{
+  "moderate": true,
+  "high": true,
+  "critical": true,
+  "report-type": "summary",
+  "output-format": "text",
+  "skip-dev": false,
+  "whitelist": [],
+  "allowlist": [],
+  "package-manager": "npm",
+  "path": "./",
+  "registry": "https://registry.npmjs.org/",
+  "timeout": 300000,
+  "retry": {
+    "count": 3,
+    "factor": 2,
+    "minTimeout": 1000,
+    "maxTimeout": 10000
+  },
+  "advisories": {
+    "skip-dev": false,
+    "levels": ["moderate", "high", "critical"]
+  },
+  "config": {
+    "fail-on": "moderate",
+    "summary": true,
+    "advisories": true,
+    "show-not-found": false,
+    "show-found": true
+  }
+}

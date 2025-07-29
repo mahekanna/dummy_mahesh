@@ -1,0 +1,189 @@
+{
+  "name": "linux-patching-frontend",
+  "version": "1.0.0",
+  "description": "React Frontend for Linux Patching Automation System",
+  "private": true,
+  "homepage": "/",
+  "dependencies": {
+    "@testing-library/jest-dom": "^5.16.5",
+    "@testing-library/react": "^13.4.0",
+    "@testing-library/user-event": "^14.4.3",
+    "@types/jest": "^29.5.5",
+    "@types/node": "^20.6.0",
+    "@types/react": "^18.2.21",
+    "@types/react-dom": "^18.2.7",
+    "react": "^18.2.0",
+    "react-dom": "^18.2.0",
+    "react-scripts": "5.0.1",
+    "typescript": "^5.2.2",
+    "web-vitals": "^3.4.0",
+    "@emotion/react": "^11.11.1",
+    "@emotion/styled": "^11.11.0",
+    "@mui/material": "^5.14.8",
+    "@mui/icons-material": "^5.14.8",
+    "@mui/lab": "^5.0.0-alpha.143",
+    "@mui/x-data-grid": "^6.13.0",
+    "@mui/x-date-pickers": "^6.13.0",
+    "react-router-dom": "^6.15.0",
+    "axios": "^1.5.0",
+    "react-query": "^3.39.3",
+    "react-hook-form": "^7.45.4",
+    "@hookform/resolvers": "^3.3.1",
+    "yup": "^1.3.2",
+    "date-fns": "^2.30.0",
+    "recharts": "^2.8.0",
+    "react-hot-toast": "^2.4.1",
+    "react-helmet-async": "^1.3.0",
+    "framer-motion": "^10.16.4",
+    "zustand": "^4.4.1",
+    "socket.io-client": "^4.7.2",
+    "react-error-boundary": "^4.0.11",
+    "react-virtualized-auto-sizer": "^1.0.20",
+    "react-window": "^1.8.8",
+    "lodash": "^4.17.21",
+    "dayjs": "^1.11.9",
+    "js-cookie": "^3.0.5",
+    "react-csv": "^2.2.2",
+    "file-saver": "^2.0.5",
+    "jwt-decode": "^3.1.2",
+    "react-intersection-observer": "^9.5.2"
+  },
+  "devDependencies": {
+    "@types/lodash": "^4.14.198",
+    "@types/js-cookie": "^3.0.4",
+    "@types/file-saver": "^2.0.5",
+    "@types/react-window": "^1.8.5",
+    "@types/react-csv": "^1.1.4",
+    "@typescript-eslint/eslint-plugin": "^6.6.0",
+    "@typescript-eslint/parser": "^6.6.0",
+    "eslint": "^8.48.0",
+    "eslint-config-react-app": "^7.0.1",
+    "eslint-plugin-react": "^7.33.2",
+    "eslint-plugin-react-hooks": "^4.6.0",
+    "eslint-plugin-security": "^1.7.1",
+    "eslint-plugin-import": "^2.28.1",
+    "prettier": "^3.0.3",
+    "husky": "^8.0.3",
+    "lint-staged": "^14.0.1",
+    "snyk": "^1.1230.0",
+    "audit-ci": "^6.6.1",
+    "cross-env": "^7.0.3",
+    "serve": "^14.2.1",
+    "msw": "^1.3.0",
+    "cypress": "^13.2.0",
+    "start-server-and-test": "^2.0.1",
+    "source-map-explorer": "^2.5.3",
+    "webpack-bundle-analyzer": "^4.9.1",
+    "@storybook/react": "^7.4.0",
+    "@storybook/addon-essentials": "^7.4.0",
+    "@storybook/addon-interactions": "^7.4.0",
+    "@storybook/addon-links": "^7.4.0",
+    "@storybook/blocks": "^7.4.0",
+    "@storybook/testing-library": "^0.2.0",
+    "lighthouse": "^11.0.0",
+    "pa11y": "^8.0.0"
+  },
+  "scripts": {
+    "start": "react-scripts start",
+    "build": "react-scripts build",
+    "test": "react-scripts test",
+    "eject": "react-scripts eject",
+    "lint": "eslint src --ext .ts,.tsx,.js,.jsx",
+    "lint:fix": "eslint src --ext .ts,.tsx,.js,.jsx --fix",
+    "prettier": "prettier --write src/**/*.{ts,tsx,js,jsx,json,css,scss,md}",
+    "prettier:check": "prettier --check src/**/*.{ts,tsx,js,jsx,json,css,scss,md}",
+    "type-check": "tsc --noEmit",
+    "pre-commit": "lint-staged",
+    "security:audit": "npm audit --audit-level=moderate",
+    "security:snyk": "snyk test",
+    "security:audit-ci": "audit-ci --config audit-ci.json",
+    "security:scan": "npm run security:audit && npm run security:snyk",
+    "analyze": "npm run build && npx webpack-bundle-analyzer build/static/js/*.js",
+    "bundle-size": "npm run build && source-map-explorer 'build/static/js/*.js'",
+    "lighthouse": "lighthouse http://localhost:3000 --output=html --output-path=./lighthouse-report.html",
+    "accessibility": "pa11y http://localhost:3000",
+    "storybook": "storybook dev -p 6006",
+    "build-storybook": "storybook build",
+    "test:e2e": "cypress open",
+    "test:e2e:headless": "cypress run",
+    "test:e2e:ci": "start-server-and-test start http://localhost:3000 test:e2e:headless",
+    "test:coverage": "npm test -- --coverage --watchAll=false",
+    "test:ci": "cross-env CI=true npm test -- --coverage --watchAll=false",
+    "serve:build": "serve -s build -l 3000",
+    "clean": "rm -rf build node_modules/.cache",
+    "deps:check": "npm outdated",
+    "deps:update": "npm update",
+    "deps:update-interactive": "npx npm-check-updates -i",
+    "validate": "npm run lint && npm run type-check && npm run test:ci && npm run security:scan",
+    "prepare": "husky install"
+  },
+  "engines": {
+    "node": ">=16.0.0",
+    "npm": ">=8.0.0"
+  },
+  "browserslist": {
+    "production": [
+      ">0.2%",
+      "not dead",
+      "not op_mini all"
+    ],
+    "development": [
+      "last 1 chrome version",
+      "last 1 firefox version",
+      "last 1 safari version"
+    ]
+  },
+  "lint-staged": {
+    "src/**/*.{ts,tsx,js,jsx}": [
+      "eslint --fix",
+      "prettier --write"
+    ],
+    "src/**/*.{json,css,scss,md}": [
+      "prettier --write"
+    ]
+  },
+  "husky": {
+    "hooks": {
+      "pre-commit": "lint-staged",
+      "pre-push": "npm run validate"
+    }
+  },
+  "jest": {
+    "collectCoverageFrom": [
+      "src/**/*.{ts,tsx}",
+      "!src/**/*.d.ts",
+      "!src/index.tsx",
+      "!src/reportWebVitals.ts",
+      "!src/**/*.stories.{ts,tsx}",
+      "!src/mocks/**"
+    ],
+    "coverageThreshold": {
+      "global": {
+        "branches": 80,
+        "functions": 80,
+        "lines": 80,
+        "statements": 80
+      }
+    }
+  },
+  "proxy": "http://localhost:8000",
+  "repository": {
+    "type": "git",
+    "url": "https://github.com/company/linux-patching-automation.git"
+  },
+  "keywords": [
+    "linux",
+    "patching",
+    "automation",
+    "react",
+    "typescript",
+    "frontend",
+    "devops",
+    "security"
+  ],
+  "author": "Linux Patching Team",
+  "license": "MIT",
+  "bugs": {
+    "url": "https://github.com/company/linux-patching-automation/issues"
+  }
+}

@@ -1,0 +1,212 @@
+# Prometheus alerts for Linux Patching Automation
+
+groups:
+- name: linux-patching-alerts
+  rules:
+  
+  # System Health Alerts
+  - alert: HighCPUUsage
+    expr: 100 - (avg by(instance) (rate(node_cpu_seconds_total{mode="idle"}[5m])) * 100) > 80
+    for: 5m
+    labels:
+      severity: warning
+      service: system
+    annotations:
+      summary: "High CPU usage detected on {{ $labels.instance }}"
+      description: "CPU usage is above 80% for more than 5 minutes on {{ $labels.instance }}"
+
+  - alert: HighMemoryUsage
+    expr: (1 - (node_memory_MemAvailable_bytes / node_memory_MemTotal_bytes)) * 100 > 85
+    for: 5m
+    labels:
+      severity: warning
+      service: system
+    annotations:
+      summary: "High memory usage detected on {{ $labels.instance }}"
+      description: "Memory usage is above 85% for more than 5 minutes on {{ $labels.instance }}"
+
+  - alert: LowDiskSpace
+    expr: (1 - (node_filesystem_avail_bytes / node_filesystem_size_bytes)) * 100 > 90
+    for: 5m
+    labels:
+      severity: critical
+      service: system
+    annotations:
+      summary: "Low disk space on {{ $labels.instance }}"
+      description: "Disk usage is above 90% on {{ $labels.instance }}"
+
+  # Application Health Alerts
+  - alert: ApplicationDown
+    expr: up{job=~"linux-patching-api|linux-patching-frontend"} == 0
+    for: 1m
+    labels:
+      severity: critical
+      service: application
+    annotations:
+      summary: "Application is down: {{ $labels.job }}"
+      description: "{{ $labels.job }} has been down for more than 1 minute"
+
+  - alert: HighErrorRate
+    expr: rate(http_requests_total{status=~"5.."}[5m]) / rate(http_requests_total[5m]) > 0.05
+    for: 5m
+    labels:
+      severity: warning
+      service: application
+    annotations:
+      summary: "High error rate detected"
+      description: "Error rate is above 5% for more than 5 minutes"
+
+  - alert: SlowResponseTime
+    expr: histogram_quantile(0.95, rate(http_request_duration_seconds_bucket[5m])) > 2
+    for: 5m
+    labels:
+      severity: warning
+      service: application
+    annotations:
+      summary: "Slow response time detected"
+      description: "95th percentile response time is above 2 seconds"
+
+  # Patching-Specific Alerts
+  - alert: PatchingJobFailed
+    expr: patching_job_status{status="failed"} > 0
+    for: 0m
+    labels:
+      severity: critical
+      service: patching
+    annotations:
+      summary: "Patching job failed: {{ $labels.job_name }}"
+      description: "Patching job {{ $labels.job_name }} has failed"
+
+  - alert: PatchingJobStuck
+    expr: patching_job_duration_seconds > 7200  # 2 hours
+    for: 0m
+    labels:
+      severity: warning
+      service: patching
+    annotations:
+      summary: "Patching job running too long: {{ $labels.job_name }}"
+      description: "Patching job {{ $labels.job_name }} has been running for more than 2 hours"
+
+  - alert: HighPatchingFailureRate
+    expr: rate(patching_jobs_failed_total[1h]) / rate(patching_jobs_total[1h]) > 0.1
+    for: 15m
+    labels:
+      severity: warning
+      service: patching
+    annotations:
+      summary: "High patching failure rate"
+      description: "More than 10% of patching jobs are failing in the last hour"
+
+  - alert: TooManyPendingApprovals
+    expr: patching_approvals_pending > 50
+    for: 30m
+    labels:
+      severity: warning
+      service: patching
+    annotations:
+      summary: "Too many pending approvals"
+      description: "There are {{ $value }} pending approvals for more than 30 minutes"
+
+  # Infrastructure Alerts
+  - alert: SSHConnectionFailure
+    expr: ssh_connectivity_status == 0
+    for: 5m
+    labels:
+      severity: critical
+      service: ssh
+    annotations:
+      summary: "SSH connection failed to {{ $labels.server }}"
+      description: "Cannot establish SSH connection to {{ $labels.server }}"
+
+  - alert: EmailServiceDown
+    expr: email_service_status == 0
+    for: 2m
+    labels:
+      severity: warning
+      service: email
+    annotations:
+      summary: "Email service is down"
+      description: "Email service has been down for more than 2 minutes"
+
+  - alert: DatabaseConnectionIssue
+    expr: database_connection_status == 0
+    for: 1m
+    labels:
+      severity: critical
+      service: database
+    annotations:
+      summary: "Database connection issue"
+      description: "Cannot connect to database"
+
+  # Security Alerts
+  - alert: UnauthorizedAccess
+    expr: rate(http_requests_total{status="401"}[5m]) > 10
+    for: 5m
+    labels:
+      severity: warning
+      service: security
+    annotations:
+      summary: "High number of unauthorized access attempts"
+      description: "More than 10 unauthorized access attempts per minute"
+
+  - alert: SuspiciousActivity
+    expr: rate(http_requests_total{status="403"}[5m]) > 5
+    for: 5m
+    labels:
+      severity: warning
+      service: security
+    annotations:
+      summary: "Suspicious activity detected"
+      description: "More than 5 forbidden requests per minute"
+
+  # Business Logic Alerts
+  - alert: ServerNotPatched
+    expr: time() - server_last_patched_timestamp > 2592000  # 30 days
+    for: 0m
+    labels:
+      severity: warning
+      service: compliance
+    annotations:
+      summary: "Server not patched for 30 days: {{ $labels.server }}"
+      description: "Server {{ $labels.server }} has not been patched for more than 30 days"
+
+  - alert: CriticalServerOffline
+    expr: server_status{environment="production"} == 0
+    for: 2m
+    labels:
+      severity: critical
+      service: infrastructure
+    annotations:
+      summary: "Critical production server offline: {{ $labels.server }}"
+      description: "Production server {{ $labels.server }} has been offline for more than 2 minutes"
+
+  - alert: PatchingWindowMissed
+    expr: patching_window_missed > 0
+    for: 0m
+    labels:
+      severity: warning
+      service: scheduling
+    annotations:
+      summary: "Patching window missed for {{ $labels.server }}"
+      description: "Scheduled patching window was missed for {{ $labels.server }}"
+
+  # Performance Alerts
+  - alert: HighConcurrentConnections
+    expr: concurrent_connections > 100
+    for: 5m
+    labels:
+      severity: warning
+      service: performance
+    annotations:
+      summary: "High number of concurrent connections"
+      description: "More than 100 concurrent connections for more than 5 minutes"
+
+  - alert: QueueBacklog
+    expr: queue_size > 1000
+    for: 10m
+    labels:
+      severity: warning
+      service: performance
+    annotations:
+      summary: "Large queue backlog"
+      description: "Queue size is greater than 1000 for more than 10 minutes"

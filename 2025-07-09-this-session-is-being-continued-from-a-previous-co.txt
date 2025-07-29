@@ -1,0 +1,19 @@
+╭───────────────────────────────────────────────────╮
+│ ✻ Welcome to Claude Code!                         │
+│                                                   │
+│   /help for help, /status for your current setup  │
+│                                                   │
+│   cwd: /home/vijji/linux_patching_automation      │
+╰───────────────────────────────────────────────────╯
+
+● Compact summary (ctrl+r to expand)
+  ⎿  Read react_patching_system/README.md (243 lines)
+  ⎿  Read react_patching_system/start_system.sh (118 lines)
+  ⎿  Read react_patching_system/frontend/src/pages/ReportsPage.tsx (396 lines)
+  ⎿  Read react_patching_system/frontend/src/pages/AdminPage.tsx (405 lines)
+  ⎿  Read react_patching_system/frontend/src/pages/ServerDetailPage.tsx (277 lines)
+  ⎿  Todo list read (7 items)
+
+> /compact 
+  ⎿  Compacted. ctrl+r to see full summary
+

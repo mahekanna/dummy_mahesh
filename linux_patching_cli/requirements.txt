@@ -1,0 +1,310 @@
+# Linux Patching Automation - Requirements
+# Core dependencies for the complete CLI system
+
+# Command Line Interface
+click>=8.0.0                    # CLI framework
+colorama>=0.4.4                 # Colored terminal output
+tabulate>=0.8.9                 # Table formatting
+rich>=10.0.0                    # Rich text and beautiful formatting
+
+# SSH and Remote Operations
+paramiko>=2.7.2                 # SSH client library
+scp>=0.14.0                     # Secure copy over SSH
+fabric>=2.6.0                   # SSH automation (optional)
+
+# Email and Notifications
+secure-smtplib>=0.1.1           # Secure SMTP library
+email-validator>=1.1.0          # Email validation
+premailer>=3.9.0                # HTML email preprocessing
+
+# Data Handling
+pandas>=1.3.0                   # Data manipulation (optional)
+openpyxl>=3.0.7                 # Excel file handling (optional)
+
+# Time and Date
+pytz>=2021.3                    # Timezone handling
+python-dateutil>=2.8.2         # Date parsing
+timezonefinder>=6.0.0           # Timezone by coordinates (optional)
+
+# Configuration and Settings
+PyYAML>=5.4.1                   # YAML configuration files
+python-dotenv>=0.19.0           # Environment variable loading
+configparser>=5.0.0             # Configuration file parsing
+
+# Logging and Monitoring
+loguru>=0.5.3                   # Advanced logging (optional)
+structlog>=21.1.0               # Structured logging (optional)
+
+# SNMP Operations
+pysnmp>=4.4.12                  # SNMP library
+easysnmp>=0.2.5                 # Simplified SNMP (optional)
+
+# Scheduling and Automation
+schedule>=1.1.0                 # Simple scheduling
+APScheduler>=3.8.0              # Advanced scheduling
+crontab>=0.23.0                 # Cron management
+python-crontab>=2.5.1           # Cron tab manipulation
+
+# Process Management
+psutil>=5.8.0                   # System and process utilities
+supervisor>=4.2.0               # Process supervision (optional)
+
+# HTTP and Web
+requests>=2.25.0                # HTTP library
+urllib3>=1.26.0                 # HTTP client
+
+# Encryption and Security
+cryptography>=3.4.0             # Cryptographic recipes
+bcrypt>=3.2.0                   # Password hashing
+keyring>=23.0.0                 # Password storage (optional)
+
+# Database (optional)
+sqlite3                         # Built-in SQLite support
+sqlalchemy>=1.4.0               # SQL toolkit (optional)
+alembic>=1.6.0                  # Database migrations (optional)
+
+# Testing and Development
+pytest>=6.2.5                   # Testing framework
+pytest-mock>=3.6.1              # Mock objects for testing
+pytest-cov>=2.12.1              # Coverage testing
+pytest-xdist>=2.3.0             # Parallel testing
+flake8>=3.9.0                   # Code linting
+black>=21.0.0                   # Code formatting
+mypy>=0.910                     # Type checking
+
+# Documentation
+sphinx>=4.0.0                   # Documentation generator (optional)
+sphinx-rtd-theme>=0.5.0         # Documentation theme (optional)
+
+# Performance and Optimization
+ujson>=4.0.0                    # Fast JSON parser (optional)
+orjson>=3.6.0                   # Fast JSON library (optional)
+
+# System Integration
+systemd-python>=234             # Systemd integration (Linux only)
+dbus-python>=1.2.16             # D-Bus integration (Linux only)
+
+# Monitoring and Metrics
+prometheus-client>=0.11.0       # Prometheus metrics (optional)
+statsd>=3.3.0                   # StatsD metrics (optional)
+
+# Utilities
+tqdm>=4.60.0                    # Progress bars
+humanize>=3.5.0                 # Human-readable numbers/dates
+fuzzywuzzy>=0.18.0              # Fuzzy string matching
+python-levenshtein>=0.12.0      # Fast string matching
+
+# File Handling
+watchdog>=2.1.0                 # File system monitoring
+pathlib2>=2.3.5                 # Path handling (Python < 3.4)
+
+# Validation and Parsing
+marshmallow>=3.12.0             # Object serialization/validation (optional)
+cerberus>=1.3.2                 # Data validation (optional)
+jsonschema>=3.2.0               # JSON schema validation
+
+# Backup and Archiving
+tarfile                         # Built-in tar support
+zipfile                         # Built-in zip support
+shutil                          # Built-in file operations
+
+# Network and Connectivity
+netaddr>=0.8.0                  # Network address manipulation
+ipaddress                       # Built-in IP address handling
+socket                          # Built-in socket operations
+
+# Template Processing
+jinja2>=3.0.0                   # Template engine
+chevron>=0.13.0                 # Mustache templates (optional)
+
+# Signal Handling
+signal                          # Built-in signal handling
+threading                       # Built-in threading
+
+# Environment Detection
+platform                       # Built-in platform detection
+distro>=1.5.0                   # Linux distribution detection
+
+# Concurrency
+concurrent.futures              # Built-in parallel execution
+multiprocessing                 # Built-in multiprocessing
+threading                       # Built-in threading
+
+# Memory and Resource Management
+gc                              # Built-in garbage collection
+resource                        # Built-in resource limits
+
+# Regular Expressions
+re                              # Built-in regex
+
+# JSON and Data Formats
+json                            # Built-in JSON support
+csv                             # Built-in CSV support
+xml.etree.ElementTree           # Built-in XML support
+
+# Operating System Interface
+os                              # Built-in OS interface
+sys                             # Built-in system interface
+subprocess                      # Built-in subprocess management
+
+# Error Handling
+traceback                       # Built-in traceback
+warnings                        # Built-in warnings
+
+# Mathematical Operations
+math                            # Built-in math
+statistics                      # Built-in statistics
+
+# Random and UUID
+random                          # Built-in random
+uuid                            # Built-in UUID
+
+# Pickle and Serialization
+pickle                          # Built-in serialization
+copyreg                         # Built-in copy registration
+
+# Temporary Files
+tempfile                        # Built-in temporary files
+
+# Collections and Data Structures
+collections                     # Built-in collections
+heapq                           # Built-in heap queue
+queue                           # Built-in queue
+
+# Itertools
+itertools                       # Built-in iterator tools
+
+# Functools
+functools                       # Built-in functional tools
+
+# Hashlib
+hashlib                         # Built-in hashing
+
+# Base64
+base64                          # Built-in base64 encoding
+
+# URL Parsing
+urllib.parse                    # Built-in URL parsing
+
+# Mime Types
+mimetypes                       # Built-in MIME type detection
+
+# Locale
+locale                          # Built-in locale support
+
+# Glob
+glob                            # Built-in glob patterns
+
+# Fnmatch
+fnmatch                         # Built-in filename matching
+
+# Shlex
+shlex                           # Built-in shell lexing
+
+# String Operations
+string                          # Built-in string operations
+
+# Textwrap
+textwrap                        # Built-in text wrapping
+
+# Difflib
+difflib                         # Built-in diff operations
+
+# Keyword
+keyword                         # Built-in keyword detection
+
+# Token
+token                           # Built-in token types
+
+# AST
+ast                             # Built-in AST operations
+
+# Dis
+dis                             # Built-in disassembly
+
+# Inspect
+inspect                         # Built-in inspection
+
+# Types
+types                           # Built-in type utilities
+
+# Typing
+typing                          # Built-in type hints
+
+# Contextlib
+contextlib                      # Built-in context managers
+
+# Weakref
+weakref                         # Built-in weak references
+
+# Copy
+copy                            # Built-in copying
+
+# Pprint
+pprint                          # Built-in pretty printing
+
+# Reprlib
+reprlib                         # Built-in repr utilities
+
+# Enum
+enum                            # Built-in enumerations
+
+# Decimal
+decimal                         # Built-in decimal arithmetic
+
+# Fractions
+fractions                       # Built-in fraction arithmetic
+
+# Secrets
+secrets                         # Built-in secrets
+
+# Hmac
+hmac                            # Built-in HMAC
+
+# Zlib
+zlib                            # Built-in compression
+
+# Gzip
+gzip                            # Built-in gzip compression
+
+# Bz2
+bz2                             # Built-in bz2 compression
+
+# Lzma
+lzma                            # Built-in LZMA compression
+
+# Sqlite3
+sqlite3                         # Built-in SQLite
+
+# Readline
+readline                        # Built-in readline (Unix only)
+
+# Rlcompleter
+rlcompleter                     # Built-in readline completion
+
+# Fcntl
+fcntl                           # Built-in file control (Unix only)
+
+# Termios
+termios                         # Built-in terminal I/O (Unix only)
+
+# Tty
+tty                             # Built-in TTY utilities (Unix only)
+
+# Pty
+pty                             # Built-in PTY utilities (Unix only)
+
+# Pwd
+pwd                             # Built-in password database (Unix only)
+
+# Grp
+grp                             # Built-in group database (Unix only)
+
+# Spwd
+spwd                            # Built-in shadow password (Unix only)
+
+# Crypt
+crypt                           # Built-in crypt (Unix only)
+
+# Syslog
+syslog                          # Built-in syslog (Unix only)
